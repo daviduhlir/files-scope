@@ -12,13 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Scope = void 0;
 const mutex_1 = require("@david.uhlir/mutex");
 const utils_1 = require("./utils");
-const FileDependency_1 = require("./FileDependency");
+const FsDependency_1 = require("./FsDependency");
 class Scope {
     static writeAccess(filePath, basePath = './') {
-        return FileDependency_1.FileDependency.prepare(filePath, true, basePath);
+        return FsDependency_1.FsDependency.access(filePath, true, basePath);
     }
     static readAccess(filePath, basePath = './') {
-        return FileDependency_1.FileDependency.prepare(filePath, false, basePath);
+        return FsDependency_1.FsDependency.access(filePath, false, basePath);
     }
     static open(mutexPrefix, dependeciesMap, handler, maxLockingTime) {
         return __awaiter(this, void 0, void 0, function* () {

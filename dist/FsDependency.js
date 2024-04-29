@@ -28,19 +28,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FileDependency = void 0;
+exports.FsDependency = void 0;
 const Dependency_1 = require("./Dependency");
 const fs_1 = require("fs");
 const path = __importStar(require("path"));
-class FileDependency extends Dependency_1.Dependency {
+class FsDependency extends Dependency_1.Dependency {
     constructor(filePath, writeAccess, basePath = './') {
         super();
         this.filePath = filePath;
         this.writeAccess = writeAccess;
         this.basePath = basePath;
     }
-    static prepare(filePath, writeAccess, basePath = './') {
-        return new FileDependency(filePath, writeAccess, basePath);
+    static access(filePath, writeAccess, basePath = './') {
+        return new FsDependency(filePath, writeAccess, basePath);
     }
     getKey() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -70,9 +70,29 @@ class FileDependency extends Dependency_1.Dependency {
             return fs_1.promises.stat(this.getFullPath(), opts);
         });
     }
+    lstat(opts) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return fs_1.promises.lstat(this.getFullPath(), opts);
+        });
+    }
     unlink() {
         return __awaiter(this, void 0, void 0, function* () {
             return fs_1.promises.unlink(this.getFullPath());
+        });
+    }
+    isDirectory() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield this.lstat()).isDirectory();
+        });
+    }
+    isFile() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield this.lstat()).isFile();
+        });
+    }
+    readdir(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return fs_1.promises.readdir(this.getFullPath(), options);
         });
     }
     exists() {
@@ -87,5 +107,5 @@ class FileDependency extends Dependency_1.Dependency {
         });
     }
 }
-exports.FileDependency = FileDependency;
-//# sourceMappingURL=FileDependency.js.map
+exports.FsDependency = FsDependency;
+//# sourceMappingURL=FsDependency.js.map

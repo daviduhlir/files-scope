@@ -43,11 +43,11 @@ export class FsDependency extends Dependency {
    */
   async read(
     options?:
-        | ({
-            encoding?: null | undefined;
-            flag?: OpenMode | undefined;
+      | ({
+          encoding?: null | undefined
+          flag?: OpenMode | undefined
         } & Abortable)
-        | null,
+      | null,
   ): Promise<Buffer> {
     return fs.readFile(this.getFullPath(), options)
   }
@@ -56,17 +56,12 @@ export class FsDependency extends Dependency {
    * Write file contents
    */
   async write(
-    data:
-      | string
-      | NodeJS.ArrayBufferView
-      | Iterable<string | NodeJS.ArrayBufferView>
-      | AsyncIterable<string | NodeJS.ArrayBufferView>
-      | Stream,
+    data: string | NodeJS.ArrayBufferView | Iterable<string | NodeJS.ArrayBufferView> | AsyncIterable<string | NodeJS.ArrayBufferView> | Stream,
     options?:
       | (ObjectEncodingOptions & {
-          mode?: Mode | undefined;
-          flag?: OpenMode | undefined;
-      } & Abortable)
+          mode?: Mode | undefined
+          flag?: OpenMode | undefined
+        } & Abortable)
       | BufferEncoding
       | null,
   ): Promise<void> {
@@ -78,8 +73,8 @@ export class FsDependency extends Dependency {
    */
   async stat(
     opts?: StatOptions & {
-      bigint?: false | undefined;
-    }
+      bigint?: false | undefined
+    },
   ): Promise<Stats> {
     return fs.stat(this.getFullPath(), opts)
   }
@@ -89,8 +84,8 @@ export class FsDependency extends Dependency {
    */
   async lstat(
     opts?: StatOptions & {
-      bigint?: false | undefined;
-    }
+      bigint?: false | undefined
+    },
   ): Promise<Stats> {
     return fs.lstat(this.getFullPath(), opts)
   }
@@ -121,11 +116,11 @@ export class FsDependency extends Dependency {
    */
   async readdir(
     options?:
-    | (ObjectEncodingOptions & {
-          withFileTypes?: false | undefined;
-      })
-    | BufferEncoding
-    | null
+      | (ObjectEncodingOptions & {
+          withFileTypes?: false | undefined
+        })
+      | BufferEncoding
+      | null,
   ): Promise<string[]> {
     return fs.readdir(this.getFullPath(), options)
   }
@@ -137,7 +132,7 @@ export class FsDependency extends Dependency {
     try {
       await this.stat()
       return true
-    } catch(e) {
+    } catch (e) {
       return false
     }
   }
