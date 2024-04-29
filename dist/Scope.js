@@ -12,7 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Scope = void 0;
 const mutex_1 = require("@david.uhlir/mutex");
 const utils_1 = require("./utils");
+const FileDependency_1 = require("./FileDependency");
 class Scope {
+    static writeAccess(filePath, basePath = './') {
+        return FileDependency_1.FileDependency.prepare(filePath, true, basePath);
+    }
+    static readAccess(filePath, basePath = './') {
+        return FileDependency_1.FileDependency.prepare(filePath, false, basePath);
+    }
     static open(mutexPrefix, dependeciesMap, handler, maxLockingTime) {
         return __awaiter(this, void 0, void 0, function* () {
             const dependecies = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
@@ -21,7 +28,6 @@ class Scope {
                 allKeys.push([yield dependency.getKey(), yield dependency.isSingleAccess()]);
             }
             const mutexKeys = utils_1.getAllMutexKeyItems(mutexPrefix, allKeys);
-            console.log(mutexKeys.map(i => `${i.singleAccess ? 'S' : 'M'}: ${i.key.join('/')}`));
             return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                 yield Promise.all(dependecies.map(d => d.initialize()));
                 let result;

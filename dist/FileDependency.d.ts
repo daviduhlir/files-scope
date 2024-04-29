@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { Abortable } from 'events';
 import { Dependency } from './Dependency';
-import { Mode, ObjectEncodingOptions, OpenMode } from 'fs';
+import { Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats } from 'fs';
 import { Stream } from 'stream';
 export declare class FileDependency extends Dependency {
     readonly filePath: string;
@@ -20,4 +20,9 @@ export declare class FileDependency extends Dependency {
         mode?: Mode | undefined;
         flag?: OpenMode | undefined;
     } & Abortable) | BufferEncoding | null): Promise<void>;
+    stat(opts?: StatOptions & {
+        bigint?: false | undefined;
+    }): Promise<Stats>;
+    unlink(): Promise<void>;
+    exists(): Promise<boolean>;
 }

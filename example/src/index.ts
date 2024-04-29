@@ -14,9 +14,9 @@ export function delay<T = any>(time: number, call?: () => Promise<T>): Promise<T
 
   await Promise.all([
     Scope.open('file', {
-      example: FileDependency.prepare('files/example.txt'),
-      a: FileDependency.prepare('a/dir/subdir/file.txt', true),
-      b: FileDependency.prepare('a/dir/file.txt'),
+      example: Scope.readAccess('files/example.txt'),
+      a: Scope.writeAccess('a/dir/subdir/file.txt'),
+      b: Scope.readAccess('a/dir/file.txt'),
     }, async (map) => {
       console.log('Open scope A')
       await map.example.read()
@@ -24,8 +24,8 @@ export function delay<T = any>(time: number, call?: () => Promise<T>): Promise<T
       console.log('Close scope A')
     }),
     Scope.open('file', {
-      example: FileDependency.prepare('files/example.txt'),
-      a: FileDependency.prepare('a/dir/file.txt'),
+      example: Scope.readAccess('files/example.txt'),
+      a: Scope.readAccess('a/dir/file.txt'),
     }, async (map) => {
       console.log('Open scope B')
       await delay(100)

@@ -65,6 +65,27 @@ class FileDependency extends Dependency_1.Dependency {
             return fs_1.promises.writeFile(this.getFullPath(), data, options);
         });
     }
+    stat(opts) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return fs_1.promises.stat(this.getFullPath(), opts);
+        });
+    }
+    unlink() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return fs_1.promises.unlink(this.getFullPath());
+        });
+    }
+    exists() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.stat();
+                return true;
+            }
+            catch (e) {
+                return false;
+            }
+        });
+    }
 }
 exports.FileDependency = FileDependency;
 //# sourceMappingURL=FileDependency.js.map

@@ -1,6 +1,6 @@
 import { Abortable } from 'events'
 import { Dependency } from './Dependency'
-import { Mode, ObjectEncodingOptions, OpenMode, promises as fs } from 'fs'
+import { Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats, promises as fs } from 'fs'
 import * as path from 'path'
 import { Stream } from 'stream'
 
@@ -71,5 +71,35 @@ export class FileDependency extends Dependency {
       | null,
   ): Promise<void> {
     return fs.writeFile(this.getFullPath(), data, options)
+  }
+
+  /**
+   * Stat file
+   */
+  async stat(
+    opts?: StatOptions & {
+      bigint?: false | undefined;
+    }
+  ): Promise<Stats> {
+    return fs.stat(this.getFullPath(), opts)
+  }
+
+  /**
+   * Unlink file
+   */
+  async unlink(): Promise<void> {
+    return fs.unlink(this.getFullPath())
+  }
+
+  /**
+   * File exists
+   */
+  async exists(): Promise<boolean> {
+    try {
+      await this.stat()
+      return true
+    } catch(e) {
+      return false
+    }
   }
 }
