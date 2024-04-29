@@ -1,14 +1,14 @@
-import { ScopeDependency } from './ScopeDependency'
+import { Dependency } from './Dependency'
 import { SharedMutex } from '@david.uhlir/mutex'
 import { findLowestCommonPath } from './utils'
 
-export class FilesScope {
+export class Scope {
   /**
    * Open scope with dependecies
    */
-  static async open<T, K extends {[key: string]: ScopeDependency}>(dependeciesMap: K, handler: ((dependecies: K) => Promise<T>), maxLockingTime?: number,): Promise<T> {
+  static async open<T, K extends {[key: string]: Dependency}>(dependeciesMap: K, handler: ((dependecies: K) => Promise<T>), maxLockingTime?: number,): Promise<T> {
     // make dependecies array to easy work with
-    const dependecies = Object.keys(dependeciesMap).reduce<ScopeDependency[]>((acc, key) => [...acc, dependeciesMap[key]],[])
+    const dependecies = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]],[])
 
     // resolve keys
     const allKeys = await Promise.all(dependecies.map(d => d.getKey()))
@@ -36,10 +36,3 @@ export class FilesScope {
     }, singleAccess, maxLockingTime)
   }
 }
-
-
-FilesScope.open({
-  ff: new ScopeDependency(),
-}, async map => {
-
-})

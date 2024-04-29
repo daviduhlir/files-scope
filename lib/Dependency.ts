@@ -1,4 +1,4 @@
-export class ScopeDependency {
+export class Dependency {
   async getKey() {
     return ''
   }
