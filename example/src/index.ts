@@ -1,4 +1,5 @@
-import { Scope, FileDependency } from '@david.uhlir/files-scope'
+import { Scope } from '@david.uhlir/files-scope'
+import { SharedMutex } from '@david.uhlir/mutex'
 
 export function delay<T = any>(time: number, call?: () => Promise<T>): Promise<T> {
   return new Promise(resolve => setTimeout(async () => {
@@ -13,24 +14,34 @@ export function delay<T = any>(time: number, call?: () => Promise<T>): Promise<T
 ;(async function() {
 
   await Promise.all([
-    Scope.open('file', {
-      example: Scope.readAccess('files/example.txt'),
-      a: Scope.writeAccess('a/dir/subdir/file.txt'),
-      b: Scope.readAccess('a/dir/file.txt'),
-    }, async (map) => {
+    SharedMutex.lockSingleAccess('ROOT', async () => {
+      console.log('Open scope C')
+      await delay(100)
+      console.log('Close scope C')
+    }),
+    Scope.open('ROOT', {
+      a: Scope.writeAccess('dir/dirA/file1.txt'),
+      b: Scope.writeAccess('dir/dirA/file2.txt'),
+    }, async (dependecies) => {
       console.log('Open scope A')
-      await map.example.read()
       await delay(100)
       console.log('Close scope A')
     }),
-    Scope.open('file', {
-      example: Scope.readAccess('files/example.txt'),
-      a: Scope.readAccess('a/dir/file.txt'),
-    }, async (map) => {
+    Scope.open('ROOT', {
+      example: Scope.readAccess('dir/dirB/file1'),
+      a: Scope.readAccess('dir/dirB/file2.txt'),
+    }, async (dependecies) => {
       console.log('Open scope B')
       await delay(100)
       console.log('Close scope B')
-    })
+    }),
+    Scope.open('ROOT', {
+      a: Scope.writeAccess('dir/dirB/file1'),
+    }, async (dependecies) => {
+      console.log('Open scope D')
+      await delay(100)
+      console.log('Close scope D')
+    }),
   ])
 
   console.log('Finished')
