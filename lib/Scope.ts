@@ -1,22 +1,27 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { Dependency } from './Dependency'
-import { findLowestCommonPath } from './utils'
+import { MutexKeyItem, getAllMutexKeyItems } from './utils'
 
 export class Scope {
+
+
   /**
    * Open scope with dependecies
    */
-  static async open<T, K extends {[key: string]: Dependency}>(dependeciesMap: K, handler: ((dependecies: K) => Promise<T>), maxLockingTime?: number,): Promise<T> {
+  static async open<T, K extends {[key: string]: Dependency}>(mutexPrefix: string, dependeciesMap: K, handler: ((dependecies: K) => Promise<T>), maxLockingTime?: number): Promise<T> {
     // make dependecies array to easy work with
     const dependecies = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]],[])
 
     // resolve keys
-    const allKeys = await Promise.all(dependecies.map(d => d.getKey()))
-    const lowestKey = findLowestCommonPath(allKeys)
-    const singleAccess = (await Promise.all(dependecies.map(d => d.isSingleAccess()))).some(single => !!single)
+    const allKeys = []
+    for(const dependency of dependecies) {
+      allKeys.push([await dependency.getKey(), await dependency.isSingleAccess()])
+    }
+
+    const mutexKeys = getAllMutexKeyItems(mutexPrefix, allKeys)
 
     // lock access to group
-    return SharedMutex.lockAccess(lowestKey, async () => {
+    return Scope.lockScope(mutexKeys, dependeciesMap, async () => {
       // open dependecies
       await Promise.all(dependecies.map(d => d.initialize()))
 
@@ -33,6 +38,24 @@ export class Scope {
       // finish dependecies
       await Promise.all(dependecies.map(d => d.finish()))
       return result
-    }, singleAccess, maxLockingTime)
+    }, maxLockingTime)
+  }
+
+  /**
+   * Internal scope lock
+   * @param mutexes
+   * @param dependeciesMap
+   * @param handler
+   * @param maxLockingTime
+   * @returns
+   */
+  protected static lockScope<T, K extends {[key: string]: Dependency}>(mutexes: MutexKeyItem[], dependeciesMap: K, handler: ((dependecies: K) => Promise<T>), maxLockingTime?: number) {
+    const m = mutexes.pop()
+    return SharedMutex.lockAccess(m.key, async () => {
+      if (mutexes.length) {
+        return this.lockScope(mutexes, dependeciesMap, handler, maxLockingTime)
+      }
+      return handler(dependeciesMap)
+    }, m.singleAccess, maxLockingTime)
   }
 }

@@ -13,13 +13,16 @@ exports.Scope = void 0;
 const mutex_1 = require("@david.uhlir/mutex");
 const utils_1 = require("./utils");
 class Scope {
-    static open(dependeciesMap, handler, maxLockingTime) {
+    static open(mutexPrefix, dependeciesMap, handler, maxLockingTime) {
         return __awaiter(this, void 0, void 0, function* () {
             const dependecies = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
-            const allKeys = yield Promise.all(dependecies.map(d => d.getKey()));
-            const lowestKey = utils_1.findLowestCommonPath(allKeys);
-            const singleAccess = (yield Promise.all(dependecies.map(d => d.isSingleAccess()))).some(single => !!single);
-            return mutex_1.SharedMutex.lockAccess(lowestKey, () => __awaiter(this, void 0, void 0, function* () {
+            const allKeys = [];
+            for (const dependency of dependecies) {
+                allKeys.push([yield dependency.getKey(), yield dependency.isSingleAccess()]);
+            }
+            const mutexKeys = utils_1.getAllMutexKeyItems(mutexPrefix, allKeys);
+            console.log(mutexKeys.map(i => `${i.singleAccess ? 'S' : 'M'}: ${i.key.join('/')}`));
+            return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                 yield Promise.all(dependecies.map(d => d.initialize()));
                 let result;
                 try {
@@ -31,8 +34,17 @@ class Scope {
                 }
                 yield Promise.all(dependecies.map(d => d.finish()));
                 return result;
-            }), singleAccess, maxLockingTime);
+            }), maxLockingTime);
         });
+    }
+    static lockScope(mutexes, dependeciesMap, handler, maxLockingTime) {
+        const m = mutexes.pop();
+        return mutex_1.SharedMutex.lockAccess(m.key, () => __awaiter(this, void 0, void 0, function* () {
+            if (mutexes.length) {
+                return this.lockScope(mutexes, dependeciesMap, handler, maxLockingTime);
+            }
+            return handler(dependeciesMap);
+        }), m.singleAccess, maxLockingTime);
     }
 }
 exports.Scope = Scope;
