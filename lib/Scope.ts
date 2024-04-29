@@ -1,5 +1,5 @@
-import { Dependency } from './Dependency'
 import { SharedMutex } from '@david.uhlir/mutex'
+import { Dependency } from './Dependency'
 import { findLowestCommonPath } from './utils'
 
 export class Scope {

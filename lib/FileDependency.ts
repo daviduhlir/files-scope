@@ -5,7 +5,18 @@ import * as path from 'path'
 import { Stream } from 'stream'
 
 export class FileDependency extends Dependency {
-  constructor(public readonly filePath: string, public readonly writeAccess?: boolean, public readonly basePath: string = '') {
+  /**
+   * Factory
+   * @param filePath
+   * @param writeAccess
+   * @param basePath
+   * @returns
+   */
+  static prepare(filePath: string, writeAccess?: boolean, basePath: string = './') {
+    return new FileDependency(filePath, writeAccess, basePath)
+  }
+
+  constructor(public readonly filePath: string, public readonly writeAccess?: boolean, public readonly basePath: string = './') {
     super()
   }
 
