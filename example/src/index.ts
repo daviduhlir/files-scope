@@ -28,15 +28,15 @@ export function delay<T = any>(time: number, call?: () => Promise<T>): Promise<T
       console.log('Close scope A')
     }),
     Scope.open('ROOT', {
-      example: Scope.readAccess('dir/dirB/file1'),
-      a: Scope.readAccess('dir/dirB/file2.txt'),
+      a: Scope.readAccess('dir/dirB/file1.txt'),
+      b: Scope.readAccess('dir/dirB/file2.txt'),
     }, async (dependecies) => {
       console.log('Open scope B')
       await delay(100)
       console.log('Close scope B')
     }),
     Scope.open('ROOT', {
-      a: Scope.writeAccess('dir/dirB/file1'),
+      a: Scope.writeAccess('dir/dirB/file1.txt'),
     }, async (dependecies) => {
       console.log('Open scope D')
       await delay(100)

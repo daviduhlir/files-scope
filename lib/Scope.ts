@@ -1,18 +1,18 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { Dependency } from './Dependency'
 import { MutexKeyItem, getAllMutexKeyItems } from './utils'
-import { FileDependency } from './FileDependency'
+import { FsDependency } from './FsDependency'
 
 export class Scope {
   /**
    * Factory
    */
   static writeAccess(filePath: string, basePath: string = './') {
-    return FileDependency.prepare(filePath, true, basePath)
+    return FsDependency.access(filePath, true, basePath)
   }
 
   static readAccess(filePath: string, basePath: string = './') {
-    return FileDependency.prepare(filePath, false, basePath)
+    return FsDependency.access(filePath, false, basePath)
   }
 
   /**

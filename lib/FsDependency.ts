@@ -4,7 +4,7 @@ import { Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats, promises as 
 import * as path from 'path'
 import { Stream } from 'stream'
 
-export class FileDependency extends Dependency {
+export class FsDependency extends Dependency {
   /**
    * Factory
    * @param filePath
@@ -12,8 +12,8 @@ export class FileDependency extends Dependency {
    * @param basePath
    * @returns
    */
-  static prepare(filePath: string, writeAccess?: boolean, basePath: string = './') {
-    return new FileDependency(filePath, writeAccess, basePath)
+  static access(filePath: string, writeAccess?: boolean, basePath: string = './') {
+    return new FsDependency(filePath, writeAccess, basePath)
   }
 
   constructor(public readonly filePath: string, public readonly writeAccess?: boolean, public readonly basePath: string = './') {
@@ -85,10 +85,49 @@ export class FileDependency extends Dependency {
   }
 
   /**
+   * LStat file
+   */
+  async lstat(
+    opts?: StatOptions & {
+      bigint?: false | undefined;
+    }
+  ): Promise<Stats> {
+    return fs.lstat(this.getFullPath(), opts)
+  }
+
+  /**
    * Unlink file
    */
   async unlink(): Promise<void> {
     return fs.unlink(this.getFullPath())
+  }
+
+  /**
+   * Is directory
+   */
+  async isDirectory(): Promise<boolean> {
+    return (await this.lstat()).isDirectory()
+  }
+
+  /**
+   * Is file
+   */
+  async isFile(): Promise<boolean> {
+    return (await this.lstat()).isFile()
+  }
+
+  /**
+   * Read directory
+   */
+  async readdir(
+    options?:
+    | (ObjectEncodingOptions & {
+          withFileTypes?: false | undefined;
+      })
+    | BufferEncoding
+    | null
+  ): Promise<string[]> {
+    return fs.readdir(this.getFullPath(), options)
   }
 
   /**
