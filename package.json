@@ -1,0 +1,48 @@
+{
+  "name": "@david.uhlir/files-scope",
+  "version": "1.1.26",
+  "description": "Safe files scope with mutexes for node.js apllications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rimraf ./dist && tsc",
+    "prettier-check": "prettier-check --config .prettierrc.json 'lib/**/*.ts'",
+    "prettier-format": "prettier --config .prettierrc.json 'lib/**/*.ts' --write",
+    "test": "npm run build && npm run prettier-check && ts-mocha --timeout 10000 --type-check -p ./tsconfig.json tests/**/*.spec.ts",
+    "release": "./scripts/release.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daviduhlir/files-scope.git"
+  },
+  "keywords": [
+    "promise",
+    "async",
+    "cluster",
+    "workers",
+    "node",
+    "mutex",
+    "lock",
+    "ipc",
+    "util"
+  ],
+  "author": "David Uhlíř",
+  "license": "ISC",
+  "dependecies": {
+    "@david.uhlir/mutex": "1.1.26"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^18.11.9",
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0",
+    "prettier": "^2.6.2",
+    "prettier-check": "^2.0.0",
+    "rimraf": "^2.6.2",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^3.8.3"
+  },
+  "engines": {
+    "node": "^12.17.0 || >=13.14.0"
+  }
+}
