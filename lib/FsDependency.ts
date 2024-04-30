@@ -43,6 +43,22 @@ export class FsDependency extends Dependency {
    */
   async read(
     options?:
+      | ({
+          encoding?: null | undefined
+          flag?: OpenMode | undefined
+        } & Abortable)
+      | null,
+  ): Promise<Buffer>
+  async read(
+    options:
+      | ({
+          encoding: BufferEncoding
+          flag?: OpenMode | undefined
+        } & Abortable)
+      | BufferEncoding,
+  ): Promise<string>
+  async read(
+    options?:
       | (ObjectEncodingOptions &
           Abortable & {
             flag?: OpenMode | undefined
