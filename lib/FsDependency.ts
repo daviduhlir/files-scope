@@ -43,12 +43,13 @@ export class FsDependency extends Dependency {
    */
   async read(
     options?:
-      | ({
-          encoding?: null | undefined
-          flag?: OpenMode | undefined
-        } & Abortable)
+      | (ObjectEncodingOptions &
+          Abortable & {
+            flag?: OpenMode | undefined
+          })
+      | BufferEncoding
       | null,
-  ): Promise<Buffer> {
+  ): Promise<string | Buffer> {
     return fs.readFile(this.getFullPath(), options)
   }
 

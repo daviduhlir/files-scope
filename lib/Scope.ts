@@ -1,7 +1,18 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { Dependency } from './Dependency'
-import { MutexKeyItem, getAllMutexKeyItems } from './utils'
+import { KeysStrategy, MutexKeyItem } from './interfaces'
 import { FsDependency } from './FsDependency'
+import { lowestPosible } from './strategies'
+import { parsePath } from './utils'
+
+export interface ScopeOptions {
+  maxLockingTime?: number
+  strategy?: KeysStrategy
+}
+
+export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
+  strategy: lowestPosible(),
+}
 
 export class Scope {
   /**
@@ -22,8 +33,13 @@ export class Scope {
     mutexPrefix: string,
     dependeciesMap: K,
     handler: (dependecies: K) => Promise<T>,
-    maxLockingTime?: number,
+    options?: ScopeOptions,
   ): Promise<T> {
+    const usedOptions = {
+      ...DEFAULT_SCOPE_OPTIONS,
+      ...options,
+    }
+
     if (!mutexPrefix.length) {
       throw new Error('Mutex prefix key must be at least 1 character')
     }
@@ -32,12 +48,12 @@ export class Scope {
     const dependecies = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
 
     // resolve keys
-    const allKeys = []
+    const allKeys: MutexKeyItem[] = []
     for (const dependency of dependecies) {
-      allKeys.push([await dependency.getKey(), await dependency.isSingleAccess()])
+      allKeys.push({ key: parsePath(await dependency.getKey()), singleAccess: await dependency.isSingleAccess() })
     }
 
-    const mutexKeys: MutexKeyItem[] = allKeys.length ? getAllMutexKeyItems(mutexPrefix, allKeys) : [{ key: [mutexPrefix], singleAccess: true }]
+    const mutexKeys: MutexKeyItem[] = allKeys.length ? usedOptions.strategy(mutexPrefix, allKeys) : [{ key: [mutexPrefix], singleAccess: true }]
 
     // lock access to group
     return Scope.lockScope(
@@ -61,7 +77,7 @@ export class Scope {
         await Promise.all(dependecies.map(d => d.finish()))
         return result
       },
-      maxLockingTime,
+      usedOptions.maxLockingTime,
     )
   }
 
