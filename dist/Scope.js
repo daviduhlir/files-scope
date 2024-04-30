@@ -22,12 +22,15 @@ class Scope {
     }
     static open(mutexPrefix, dependeciesMap, handler, maxLockingTime) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!mutexPrefix.length) {
+                throw new Error('Mutex prefix key must be at least 1 character');
+            }
             const dependecies = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
             const allKeys = [];
             for (const dependency of dependecies) {
                 allKeys.push([yield dependency.getKey(), yield dependency.isSingleAccess()]);
             }
-            const mutexKeys = utils_1.getAllMutexKeyItems(mutexPrefix, allKeys);
+            const mutexKeys = allKeys.length ? utils_1.getAllMutexKeyItems(mutexPrefix, allKeys) : [{ key: [mutexPrefix], singleAccess: true }];
             return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                 yield Promise.all(dependecies.map(d => d.initialize()));
                 let result;

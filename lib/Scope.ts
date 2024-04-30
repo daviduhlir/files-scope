@@ -24,6 +24,10 @@ export class Scope {
     handler: (dependecies: K) => Promise<T>,
     maxLockingTime?: number,
   ): Promise<T> {
+    if (!mutexPrefix.length) {
+      throw new Error('Mutex prefix key must be at least 1 character')
+    }
+
     // make dependecies array to easy work with
     const dependecies = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
 
@@ -33,7 +37,7 @@ export class Scope {
       allKeys.push([await dependency.getKey(), await dependency.isSingleAccess()])
     }
 
-    const mutexKeys = getAllMutexKeyItems(mutexPrefix, allKeys)
+    const mutexKeys: MutexKeyItem[] = allKeys.length ? getAllMutexKeyItems(mutexPrefix, allKeys) : [{ key: [mutexPrefix], singleAccess: true }]
 
     // lock access to group
     return Scope.lockScope(

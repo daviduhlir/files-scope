@@ -65,6 +65,9 @@ export class FsDependency extends Dependency {
       | BufferEncoding
       | null,
   ): Promise<void> {
+    if (!this.writeAccess) {
+      throw new Error('Write to read access only file in scope is not allowed')
+    }
     return fs.writeFile(this.getFullPath(), data, options)
   }
 
@@ -94,6 +97,9 @@ export class FsDependency extends Dependency {
    * Unlink file
    */
   async unlink(): Promise<void> {
+    if (!this.writeAccess) {
+      throw new Error('Write to read access only file in scope is not allowed')
+    }
     return fs.unlink(this.getFullPath())
   }
 

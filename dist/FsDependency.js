@@ -62,6 +62,9 @@ class FsDependency extends Dependency_1.Dependency {
     }
     write(data, options) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.writeAccess) {
+                throw new Error('Write to read access only file in scope is not allowed');
+            }
             return fs_1.promises.writeFile(this.getFullPath(), data, options);
         });
     }
@@ -77,6 +80,9 @@ class FsDependency extends Dependency_1.Dependency {
     }
     unlink() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.writeAccess) {
+                throw new Error('Write to read access only file in scope is not allowed');
+            }
             return fs_1.promises.unlink(this.getFullPath());
         });
     }
