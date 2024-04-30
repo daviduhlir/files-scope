@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { Abortable } from 'events';
 import { Dependency } from './Dependency';
-import { Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats } from 'fs';
+import { BigIntStats, Dirent, Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats } from 'fs';
 import { Stream } from 'stream';
 export declare class FsDependency extends Dependency {
     readonly filePath: string;
@@ -27,14 +27,27 @@ export declare class FsDependency extends Dependency {
     stat(opts?: StatOptions & {
         bigint?: false | undefined;
     }): Promise<Stats>;
+    stat(opts: StatOptions & {
+        bigint: true;
+    }): Promise<BigIntStats>;
     lstat(opts?: StatOptions & {
         bigint?: false | undefined;
     }): Promise<Stats>;
+    lstat(opts: StatOptions & {
+        bigint: true;
+    }): Promise<BigIntStats>;
     unlink(): Promise<void>;
     isDirectory(): Promise<boolean>;
     isFile(): Promise<boolean>;
     readdir(options?: (ObjectEncodingOptions & {
         withFileTypes?: false | undefined;
     }) | BufferEncoding | null): Promise<string[]>;
+    readdir(options: {
+        encoding: 'buffer';
+        withFileTypes?: false | undefined;
+    } | 'buffer'): Promise<Buffer[]>;
+    readdir(options: ObjectEncodingOptions & {
+        withFileTypes: true;
+    }): Promise<Dirent[]>;
     exists(): Promise<boolean>;
 }

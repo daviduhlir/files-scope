@@ -1,6 +1,6 @@
 import { Abortable } from 'events'
 import { Dependency } from './Dependency'
-import { Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats, promises as fs } from 'fs'
+import { BigIntStats, Dirent, Mode, ObjectEncodingOptions, OpenMode, StatOptions, Stats, promises as fs } from 'fs'
 import * as path from 'path'
 import { Stream } from 'stream'
 
@@ -95,7 +95,13 @@ export class FsDependency extends Dependency {
     opts?: StatOptions & {
       bigint?: false | undefined
     },
-  ): Promise<Stats> {
+  ): Promise<Stats>
+  async stat(
+    opts: StatOptions & {
+      bigint: true
+    },
+  ): Promise<BigIntStats>
+  async stat(opts: any): Promise<Stats | BigIntStats> {
     return fs.stat(this.getFullPath(), opts)
   }
 
@@ -106,7 +112,13 @@ export class FsDependency extends Dependency {
     opts?: StatOptions & {
       bigint?: false | undefined
     },
-  ): Promise<Stats> {
+  ): Promise<Stats>
+  async lstat(
+    opts: StatOptions & {
+      bigint: true
+    },
+  ): Promise<BigIntStats>
+  async lstat(opts?: StatOptions): Promise<Stats | BigIntStats> {
     return fs.lstat(this.getFullPath(), opts)
   }
 
@@ -144,7 +156,21 @@ export class FsDependency extends Dependency {
         })
       | BufferEncoding
       | null,
-  ): Promise<string[]> {
+  ): Promise<string[]>
+  async readdir(
+    options:
+      | {
+          encoding: 'buffer'
+          withFileTypes?: false | undefined
+        }
+      | 'buffer',
+  ): Promise<Buffer[]>
+  async readdir(
+    options: ObjectEncodingOptions & {
+      withFileTypes: true
+    },
+  ): Promise<Dirent[]>
+  async readdir(options: any): Promise<string[] | Buffer[] | Dirent[]> {
     return fs.readdir(this.getFullPath(), options)
   }
 
