@@ -12,9 +12,14 @@ export declare class FsDependency extends Dependency {
     getKey(): Promise<string>;
     isSingleAccess(): Promise<boolean>;
     getFullPath(): string;
-    read(options?: (ObjectEncodingOptions & Abortable & {
+    read(options?: ({
+        encoding?: null | undefined;
         flag?: OpenMode | undefined;
-    }) | BufferEncoding | null): Promise<string | Buffer>;
+    } & Abortable) | null): Promise<Buffer>;
+    read(options: ({
+        encoding: BufferEncoding;
+        flag?: OpenMode | undefined;
+    } & Abortable) | BufferEncoding): Promise<string>;
     write(data: string | NodeJS.ArrayBufferView | Iterable<string | NodeJS.ArrayBufferView> | AsyncIterable<string | NodeJS.ArrayBufferView> | Stream, options?: (ObjectEncodingOptions & {
         mode?: Mode | undefined;
         flag?: OpenMode | undefined;
