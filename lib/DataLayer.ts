@@ -21,52 +21,91 @@ export interface LayerAction {
   content?: Buffer
 }
 
+export interface ListItemDetails {
+  name: string
+  isList: () => Promise<boolean>
+  isData: () => Promise<boolean>
+}
+
 export class DataLayer {
   protected data: Item | null = null
   constructor() {}
 
-  protected async readData(path: PathDefinition): Promise<Buffer | null> {
-    // TODO override it!
-    return null
+  protected async readData(path: PathDefinition): Promise<Buffer> {
+    // override it!
+    throw new Error('Not implemented')
   }
 
-  protected async readList(path: PathDefinition): Promise<string[] | null> {
-    // TODO override it!
-    return null
+  protected async readIsDataExists(path: PathDefinition): Promise<boolean> {
+    // override it!
+    throw new Error('Not implemented')
+  }
+
+  protected async readList(path: PathDefinition): Promise<ListItemDetails[]> {
+    // override it!
+    throw new Error('Not implemented')
   }
 
   /**
    * Read data from path
    */
-  async read(path: PathDefinition): Promise<Buffer | null> {
+  async read(path: PathDefinition): Promise<Buffer> {
     const pointer = this.getPointer(path)
     if (pointer?.item?.[pointer?.name] instanceof Data) {
       return pointer.item[pointer.name].content
+    } else if (!pointer?.item?.[pointer?.name]) {
+      return this.readData(path)
     } else {
-      // TODO read from different place!
-      // TODO use this.readData(path) ...
+      throw new Error(`DATA_LAYER :: Can not read data for path ${path}`)
     }
-    return null
   }
 
   /**
    * Read list from path
    */
-  async list(path: PathDefinition): Promise<string[] | null> {
+  async listItems(path: PathDefinition): Promise<ListItemDetails[] | null> {
     const pointer = this.getPointer(path)
+
+    let cachedList: ListItemDetails[] = []
+    let realList: ListItemDetails[] = []
+
+    try {
+      realList = await this.readList(path)
+    } catch(e) {}
+
     if (pointer?.item?.[pointer?.name] instanceof List) {
-      return Object.keys(pointer.item[pointer.name].items)
-    } else {
-      // TODO read from different place!
-      // TODO use this.readList(path) ...
+      cachedList = Object.keys(pointer.item[pointer.name].items)
+      .filter(name => !(pointer.item[pointer.name].items[name] instanceof Unlinked))
+      .map(name => ({
+        name,
+        isData: async () => pointer.item[pointer.name].items[name] instanceof Data,
+        isList: async () => pointer.item[pointer.name].items[name] instanceof List,
+      }))
     }
-    return null
+
+    return [
+      ...cachedList,
+      ...realList.filter(item => !cachedList.find(cachedItem => cachedItem.name === item.name)),
+    ]
+  }
+
+  /**
+   * Is data exists
+   */
+  async isDataExists(path: PathDefinition): Promise<boolean> {
+    const pointer = this.getPointer(path)
+    if (pointer?.item?.[pointer?.name] instanceof Data) {
+      return true
+    } else if (!pointer?.item?.[pointer?.name]) {
+      return this.readIsDataExists(path)
+    }
+    return false
   }
 
   /**
    * Write to path
    */
-  async write(path: PathDefinition, content: Buffer): Promise<void> {
+  async write(path: PathDefinition, content: Buffer): Promise<Data> {
     const pointer = this.getPointer(path, true)
     // can write only into list, if there wasn't list on the point we are trying to write
     if (
@@ -76,8 +115,9 @@ export class DataLayer {
         pointer?.item?.[pointer?.name] instanceof Unlinked
     )) {
       pointer.item[pointer.name] = new Data(content)
+      return pointer.item[pointer.name]
     } else {
-      throw new Error('Path not found')
+      throw new Error(`DATA_LAYER :: Path ${path} not found`)
     }
   }
 
@@ -90,7 +130,7 @@ export class DataLayer {
     if (pointer?.item?.[pointer?.name]) {
       pointer.item[pointer.name] = new Unlinked()
     } else {
-      throw new Error('Path not found')
+      throw new Error(`DATA_LAYER :: Path ${path} not found`)
     }
   }
 
@@ -103,7 +143,7 @@ export class DataLayer {
     if (pointer?.item?.[pointer?.name] instanceof List) {
       pointer.item[pointer.name] = new List()
     } else {
-      throw new Error('Path not found')
+      throw new Error(`DATA_LAYER :: Path ${path} not found`)
     }
   }
 
@@ -166,7 +206,7 @@ export class DataLayer {
           }
           item = item.items[name]
         } else {
-          throw new Error('Path not found')
+          throw new Error(`DATA_LAYER :: Path ${path} not found`)
         }
       } else {
         return {
