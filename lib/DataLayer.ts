@@ -7,9 +7,7 @@ export class Data {
   ) {}
 }
 
-export class Unlinked {
-  content: Buffer
-}
+export class Unlinked {}
 
 export class List {
   items: {[name: string]: Item }
@@ -36,12 +34,22 @@ export class DataLayer {
     throw new Error('Not implemented')
   }
 
-  protected async readIsDataExists(path: PathDefinition): Promise<boolean> {
+  protected async readIsData(path: PathDefinition): Promise<boolean> {
+    // override it!
+    throw new Error('Not implemented')
+  }
+
+  protected async readIsList(path: PathDefinition): Promise<boolean> {
     // override it!
     throw new Error('Not implemented')
   }
 
   protected async readList(path: PathDefinition): Promise<ListItemDetails[]> {
+    // override it!
+    throw new Error('Not implemented')
+  }
+
+  protected async commit(actions: LayerAction[]) {
     // override it!
     throw new Error('Not implemented')
   }
@@ -90,16 +98,36 @@ export class DataLayer {
   }
 
   /**
-   * Is data exists
+   * Is data
    */
-  async isDataExists(path: PathDefinition): Promise<boolean> {
+  async isData(path: PathDefinition): Promise<boolean> {
     const pointer = this.getPointer(path)
     if (pointer?.item?.[pointer?.name] instanceof Data) {
       return true
     } else if (!pointer?.item?.[pointer?.name]) {
-      return this.readIsDataExists(path)
+      return this.readIsData(path)
     }
     return false
+  }
+
+  /**
+   * Is list
+   */
+  async isList(path: PathDefinition): Promise<boolean> {
+    const pointer = this.getPointer(path)
+    if (pointer?.item?.[pointer?.name] instanceof List) {
+      return true
+    } else if (!pointer?.item?.[pointer?.name]) {
+      return this.readIsList(path)
+    }
+    return false
+  }
+
+  /**
+   * Is data exists
+   */
+  async isDataExists(path: PathDefinition): Promise<boolean> {
+    return this.isData(path)
   }
 
   /**
@@ -125,9 +153,9 @@ export class DataLayer {
    * Remove anything on path
    */
   async remove(path: PathDefinition): Promise<void> {
-    const pointer = this.getPointer(path)
+    const pointer = this.getPointer(path, true)
     // unlinked can be anything, that exists
-    if (pointer?.item?.[pointer?.name]) {
+    if (pointer) {
       pointer.item[pointer.name] = new Unlinked()
     } else {
       throw new Error(`DATA_LAYER :: Path ${path} not found`)
@@ -147,8 +175,12 @@ export class DataLayer {
     }
   }
 
-  flush(): LayerAction[] {
+  /**
+   * Dump storagy and flush its content
+   */
+  async flush(): Promise<LayerAction[]> {
     const actions = this.dumpStorage()
+    await this.commit(actions)
     this.data = null
     return actions
   }
