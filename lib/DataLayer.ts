@@ -78,7 +78,8 @@ export class DataLayer {
    * Dump data from fs
    */
   dump() {
-    const nodes = this.extractAllPaths(this.volume.toJSON())
+    const volumeJson = this.volume.toJSON()
+    const nodes = this.extractAllPaths(volumeJson)
     const nodesPaths = Object.keys(nodes)
     const unlinkedPaths = this.unlinkedPaths.filter(unlinkedPath => !nodesPaths.find(nodePath => nodePath.startsWith(unlinkedPath)))
     return {

@@ -1,7 +1,6 @@
 import { assert } from 'chai'
 import { FileScope } from '../dist'
-import { delay, flatten } from './utils'
-import { SharedMutex } from '@david.uhlir/mutex'
+import { delay } from './utils'
 
 /**
  * Simple locks test
@@ -12,8 +11,8 @@ describe('Basic scope tests', function() {
     let open = false
     await Promise.all([
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('dir/dirB/file1.txt'),
-        b: FileScope.readAccess('dir/dirB/file2.txt'),
+        a: FileScope.readAccess('/dir/dirB/file1.txt'),
+        b: FileScope.readAccess('/dir/dirB/file2.txt'),
       }).open(async (fs, dependecies) => {
         if (open) {
           failed = true
@@ -23,7 +22,7 @@ describe('Basic scope tests', function() {
         open = false
       }),
       FileScope.prepare('./temp', {
-        a: FileScope.writeAccess('dir/dirB/file1.txt'),
+        a: FileScope.writeAccess('/dir/dirB/file1.txt'),
       }).open(async (fs, dependecies) => {
         if (open) {
           failed = true
@@ -41,15 +40,15 @@ describe('Basic scope tests', function() {
     let accumulator = ''
     await Promise.all([
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('dir/dirB/file1.txt'),
-        b: FileScope.readAccess('dir/dirB/file2.txt'),
+        a: FileScope.readAccess('/dir/dirB/file1.txt'),
+        b: FileScope.readAccess('/dir/dirB/file2.txt'),
       }).open(async (fs, dependecies) => {
         accumulator += 'A:IN;'
         await delay(100)
         accumulator += 'A:OUT;'
       }),
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('dir/dirB/file1.txt'),
+        a: FileScope.readAccess('/dir/dirB/file1.txt'),
       }).open(async (fs, dependecies) => {
         accumulator += 'B:IN;'
         await delay(100)
@@ -66,7 +65,7 @@ describe('Basic scope tests', function() {
         (async () => {
           try {
             await FileScope.prepare('./temp', {
-              a: FileScope.writeAccess('dir/dirB/file1.txt'),
+              a: FileScope.writeAccess('/dir/dirB/file1.txt'),
             }).open(async (dependecies) => {
               accumulator += 'A:IN;'
               throw new Error('TEST')
@@ -74,7 +73,7 @@ describe('Basic scope tests', function() {
           } catch(e) {}
         })(),
         FileScope.prepare('./temp', {
-          a: FileScope.writeAccess('dir/dirB/file1.txt'),
+          a: FileScope.writeAccess('/dir/dirB/file1.txt'),
         }).open(async (fs, dependecies) => {
           accumulator += 'B:IN;'
           await delay(100)
@@ -89,7 +88,7 @@ describe('Basic scope tests', function() {
     let accumulator = ''
     try {
       await FileScope.prepare('./temp', {
-        a: FileScope.readAccess('dir/dirB/file1.txt'),
+        a: FileScope.readAccess('/dir/dirB/file1.txt'),
       }).open(async (fs, dependecies) => {
         await dependecies.a.fs.writeFile('Hello')
       })
@@ -97,7 +96,7 @@ describe('Basic scope tests', function() {
       accumulator += e.message
     }
 
-    assert(accumulator === 'Write to path dir/dirB/file1.txt is not allowed in layer.', 'Read accessed file should not have allowed write files')
+    assert(accumulator === 'Write to path /dir/dirB/file1.txt is not allowed in layer.', 'Read accessed file should not have allowed write files')
   })
 
   it('Blocking whole folder', async function() {
@@ -105,8 +104,8 @@ describe('Basic scope tests', function() {
     let open = false
     await Promise.all([
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('dir/dirA/file1.txt'),
-        b: FileScope.readAccess('dir/dirA/file2.txt'),
+        a: FileScope.readAccess('/dir/dirA/file1.txt'),
+        b: FileScope.readAccess('/dir/dirA/file2.txt'),
       }).open(async (fs, dependecies) => {
         if (open) {
           failed = true
@@ -116,7 +115,7 @@ describe('Basic scope tests', function() {
         open = false
       }),
       FileScope.prepare('./temp', {
-        a: FileScope.writeAccess('dir'),
+        a: FileScope.writeAccess('/dir'),
       }).open(async (dependecies) => {
         if (open) {
           failed = true
@@ -128,5 +127,13 @@ describe('Basic scope tests', function() {
     ])
 
     assert(!failed, 'Blocking part of path should ends with blocking of scope')
+  })
+
+  it('Real write', async function() {
+    await FileScope.prepare('./temp', {
+      a: FileScope.writeAccess('/dir/file.txt'),
+    }).open(async (fs, dependecies) => {
+      await dependecies.a.fs.writeFile('Hello')
+    })
   })
 })
