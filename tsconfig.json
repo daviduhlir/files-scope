@@ -13,12 +13,11 @@
     "sourceMap": true,
     "esModuleInterop": true
   },
-  "files": [
-    "./lib/index.ts"
+  "include": [
+    "lib/**/*"
   ],
-  "filesGlob": [
-    "./lib/**/*.ts",
-    "!./node_modules/**/*.ts"
+  "exclude": [
+    "node_modules"
   ],
   "lib": [
     "es6"

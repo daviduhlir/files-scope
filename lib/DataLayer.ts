@@ -1,252 +1,295 @@
-export type PathDefinition = string
-export type Item = Data | Unlinked | List
+import { IFs, Volume, createFsFromVolume } from 'memfs'
+import { promisify } from 'util';
+import * as path from 'path'
+import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types';
+import Stats from 'memfs/lib/Stats';
+import { MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, WriteFileOptions } from 'fs';
+import { Abortable } from 'events';
 
-export class Data {
-  constructor(
-    readonly content: Buffer
-  ) {}
+export interface DataLayerCallbackApi {
+    appendFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
+    appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
+    copyFile(src: string, dest: string, callback: NoParamCallback): any;
+    copyFile(src: string, dest: string, flags: number, callback: NoParamCallback): any;
+    lstat(path: string, callback: (err: NodeJS.ErrnoException | null, stats: Stats) => void): void;
+    lstat(path: string, options: StatOptions & { bigint: true; }, callback: (err: NodeJS.ErrnoException | null, stats: Stats) => void): void;
+    mkdir(path: string, callback: NoParamCallback): any;
+    mkdir(path: string, mode: MakeDirectoryOptions & { recursive: true; }, callback: NoParamCallback): any;
+    mkdir(path: string, mode: MakeDirectoryOptions & { recursive: true; }, callback: (err: NodeJS.ErrnoException | null, path?: string) => void): any;
+    mkdir(path: string, mode: MakeDirectoryOptions & { recursive: true; }, callback: (err: NodeJS.ErrnoException | null, path?: string) => void): any;
+    readFile(path: string, callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void): any;
+    readFile(path: string, options: | ({ encoding?: BufferEncoding | undefined | null; flag?: string | undefined; } & Abortable) | undefined | null, callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void): any;
+    rename(oldPath: string, newPath: string, callback: NoParamCallback): void;
+    rmdir(path: string, callback: NoParamCallback): any;
+    rmdir(path: string, options: RmDirOptions, callback: NoParamCallback): any;
+    rm(path: string, callback: NoParamCallback): void;
+    rm(path: string, options: RmOptions, callback: NoParamCallback): void;
+    stat(path: string, callback: (err: NodeJS.ErrnoException | null, stats: Stats) => void): void;
+    stat(path: string, options: | (StatOptions & { bigint?: false | undefined; }) | undefined, callback: (err: NodeJS.ErrnoException | null, stats: Stats) => void): void;
+    unlink(path: string, callback: NoParamCallback): void;
+    writeFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
+    writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
 }
 
-export class Unlinked {}
-
-export class List {
-  items: {[name: string]: Item }
+export interface DataLayerPromiseApi {
+  appendFile(path: string, data: string | Uint8Array): Promise<void>;
+  appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
+  copyFile(src: string, dest: string): Promise<void>;
+  copyFile(src: string, dest: string, flags: number): Promise<void>;
+  lstat(path: string): Promise<Stats>;
+  lstat(path: string, options: StatOptions & { bigint: true; }): Promise<Stats>;
+  mkdir(path: string): Promise<void>;
+  mkdir(path: string, mode: MakeDirectoryOptions & { recursive: true; }): Promise<void>;
+  mkdir(path: string, mode: MakeDirectoryOptions & { recursive: true; }): Promise<string | undefined>;
+  mkdir(path: string, mode: MakeDirectoryOptions & { recursive: true; }): Promise<string | undefined>;
+  readFile(path: string): Promise<string | Buffer>;
+  readFile(path: string, options: | ({ encoding?: BufferEncoding | undefined | null; flag?: string | undefined; } & Abortable) | undefined | null): Promise<string | Buffer>;
+  rename(oldPath: string, newPath: string): Promise<void>;
+  rmdir(path: string): Promise<void>;
+  rmdir(path: string, options: RmDirOptions): Promise<void>;
+  rm(path: string): Promise<void>;
+  rm(path: string, options: RmOptions): Promise<void>;
+  stat(path: string): Promise<Stats>;
+  stat(path: string, options: | (StatOptions & { bigint?: false | undefined; }) | undefined): Promise<Stats>;
+  unlink(path: string): Promise<void>;
+  writeFile(path: string, data: string | Uint8Array): Promise<void>;
+  writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
 }
 
-export interface LayerAction {
-  type: 'write' | 'createList' | 'unlink'
-  path: string
-  content?: Buffer
+export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
+  unsafeFullFs: FsPromisesApi
+}
+export interface DataLayerFsApi extends DataLayerCallbackApi {
+  promises: DataLayerPromisesFsApi
+  unsafeFullFs: FsCallbackApi
 }
 
-export interface ListItemDetails {
-  name: string
-  isList: () => Promise<boolean>
-  isData: () => Promise<boolean>
-}
+export interface FsNode {[name: string]: FsNode | string | Buffer | null}
 
 export class DataLayer {
-  protected data: Item | null = null
-  constructor() {}
+  protected volume = new Volume()
+  protected volumeFs: IFs
+  protected unlinkedPaths: string[] = []
 
-  protected async readData(path: PathDefinition): Promise<Buffer> {
-    // override it!
-    throw new Error('Not implemented')
+  constructor(readonly sourceFs: IFs, readonly writeAllowedPaths?: string[]) {
+    this.volumeFs = createFsFromVolume(this.volume)
   }
 
-  protected async readIsData(path: PathDefinition): Promise<boolean> {
-    // override it!
-    throw new Error('Not implemented')
+  reset() {
+    this.volume = new Volume()
+    this.volumeFs = createFsFromVolume(this.volume)
+    this.unlinkedPaths = []
   }
 
-  protected async readIsList(path: PathDefinition): Promise<boolean> {
-    // override it!
-    throw new Error('Not implemented')
+  get fs(): DataLayerFsApi {
+    return new Proxy(this as any, {
+      get:
+        (target, propKey, receiver) => {
+          if (propKey === 'promises') {
+            return this.promises
+          } else if (propKey === 'unsafeFullFs') {
+            return this.fs
+          }
+          return (...args) => {
+            const cb = args.pop()
+            this.solveFsAction.apply(this, [propKey.toString(), args]).then((result, error) => cb(error, result))
+          }
+        }
+    })
   }
 
-  protected async readList(path: PathDefinition): Promise<ListItemDetails[]> {
-    // override it!
-    throw new Error('Not implemented')
+  get promises(): FsPromisesApi {
+    return new Proxy(this as any, {
+      get:
+        (target, propKey, receiver) => {
+          if (propKey === 'unsafeFullFs') {
+            return this.promises
+          }
+          return (...args) => this.solveFsAction.apply(this, [propKey.toString(), args])
+        }
+    })
   }
 
-  protected async commit(actions: LayerAction[]) {
-    // override it!
-    throw new Error('Not implemented')
-  }
-
-  /**
-   * Read data from path
-   */
-  async read(path: PathDefinition): Promise<Buffer> {
-    const pointer = this.getPointer(path)
-    if (pointer?.item?.[pointer?.name] instanceof Data) {
-      return pointer.item[pointer.name].content
-    } else if (!pointer?.item?.[pointer?.name]) {
-      return this.readData(path)
-    } else {
-      throw new Error(`DATA_LAYER :: Can not read data for path ${path}`)
+  dump() {
+    const nodes = this.extractAllPaths(this.volume.toJSON())
+    const nodesPaths = Object.keys(nodes)
+    const unlinkedPaths = this.unlinkedPaths.filter(unlinkedPath => !nodesPaths.find(nodePath => nodePath.startsWith(unlinkedPath)))
+    return {
+      unlinkedPaths,
+      nodes,
     }
   }
 
-  /**
-   * Read list from path
-   */
-  async listItems(path: PathDefinition): Promise<ListItemDetails[] | null> {
-    const pointer = this.getPointer(path)
+  async commit() {
+    const dumped = this.dump()
 
-    let cachedList: ListItemDetails[] = []
-    let realList: ListItemDetails[] = []
-
-    try {
-      realList = await this.readList(path)
-    } catch(e) {}
-
-    if (pointer?.item?.[pointer?.name] instanceof List) {
-      cachedList = Object.keys(pointer.item[pointer.name].items)
-      .filter(name => !(pointer.item[pointer.name].items[name] instanceof Unlinked))
-      .map(name => ({
-        name,
-        isData: async () => pointer.item[pointer.name].items[name] instanceof Data,
-        isList: async () => pointer.item[pointer.name].items[name] instanceof List,
-      }))
-    }
-
-    return [
-      ...cachedList,
-      ...realList.filter(item => !cachedList.find(cachedItem => cachedItem.name === item.name)),
-    ]
-  }
-
-  /**
-   * Is data
-   */
-  async isData(path: PathDefinition): Promise<boolean> {
-    const pointer = this.getPointer(path)
-    if (pointer?.item?.[pointer?.name] instanceof Data) {
-      return true
-    } else if (!pointer?.item?.[pointer?.name]) {
-      return this.readIsData(path)
-    }
-    return false
-  }
-
-  /**
-   * Is list
-   */
-  async isList(path: PathDefinition): Promise<boolean> {
-    const pointer = this.getPointer(path)
-    if (pointer?.item?.[pointer?.name] instanceof List) {
-      return true
-    } else if (!pointer?.item?.[pointer?.name]) {
-      return this.readIsList(path)
-    }
-    return false
-  }
-
-  /**
-   * Is data exists
-   */
-  async isDataExists(path: PathDefinition): Promise<boolean> {
-    return this.isData(path)
-  }
-
-  /**
-   * Write to path
-   */
-  async write(path: PathDefinition, content: Buffer): Promise<Data> {
-    const pointer = this.getPointer(path, true)
-    // can write only into list, if there wasn't list on the point we are trying to write
-    if (
-      pointer?.item instanceof List && (
-        !pointer?.item?.[pointer?.name] ||
-        pointer?.item?.[pointer?.name] instanceof Data ||
-        pointer?.item?.[pointer?.name] instanceof Unlinked
-    )) {
-      pointer.item[pointer.name] = new Data(content)
-      return pointer.item[pointer.name]
-    } else {
-      throw new Error(`DATA_LAYER :: Path ${path} not found`)
-    }
-  }
-
-  /**
-   * Remove anything on path
-   */
-  async remove(path: PathDefinition): Promise<void> {
-    const pointer = this.getPointer(path, true)
-    // unlinked can be anything, that exists
-    if (pointer) {
-      pointer.item[pointer.name] = new Unlinked()
-    } else {
-      throw new Error(`DATA_LAYER :: Path ${path} not found`)
-    }
-  }
-
-  /**
-   * Create list on path
-   */
-  async createList(path: PathDefinition): Promise<void> {
-    const pointer = this.getPointer(path, true)
-    // list can be created only in another list
-    if (pointer?.item?.[pointer?.name] instanceof List) {
-      pointer.item[pointer.name] = new List()
-    } else {
-      throw new Error(`DATA_LAYER :: Path ${path} not found`)
-    }
-  }
-
-  /**
-   * Dump storagy and flush its content
-   */
-  async flush(): Promise<LayerAction[]> {
-    const actions = this.dumpStorage()
-    await this.commit(actions)
-    this.data = null
-    return actions
-  }
-
-  /**
-   * Dump storage as actions
-   */
-  protected dumpStorage(path: string = '', item: Item | null = this.data, accumulator: LayerAction[] = []): LayerAction[] {
-    if (!item) {
-      return accumulator
-    }
-    if (item instanceof List) {
-      const itemsNames = Object.keys(item.items)
-      if (itemsNames.length) {
-        itemsNames.forEach(name => {
-          this.dumpStorage(`${path}/${name}`, item.items[name], accumulator)
-        })
-      } else {
-        accumulator.push({
-          type: 'createList',
-          path,
-        })
+    for (const unlinkedPath in dumped.unlinkedPaths) {
+      try {
+        const stat = await promisify(this.sourceFs.stat)(unlinkedPath) as Stats
+        if (stat.isDirectory()) {
+          await promisify(this.sourceFs.rm as any)(unlinkedPath, { recursive: true })
+        } else {
+          await promisify(this.sourceFs.unlink)(unlinkedPath)
+        }
+      } catch(e) {
+        // TODO can't unlink, what to do ?
       }
-    } else if (item instanceof Data) {
-      accumulator.push({
-        type: 'write',
-        path,
-        content: item.content,
-      })
-    } else if (item instanceof Unlinked) {
-      accumulator.push({
-        type: 'unlink',
-        path,
-      })
     }
+
+    for (const nodePath in dumped.nodes) {
+      const node = dumped.nodes[nodePath]
+      if (node === null) {
+        await promisify(this.sourceFs.mkdir as any)(nodePath, { recursive: true })
+      } else if (typeof node === 'string' || node instanceof Buffer) {
+        const destPath = path.dirname(nodePath)
+
+        let isDirectory = false
+        try {
+          isDirectory = ((await promisify(this.sourceFs.stat)(destPath)) as Stats).isDirectory()
+        } catch(e) {
+          await promisify(this.sourceFs.mkdir as any)(destPath, { recursive: true })
+          isDirectory = true
+        }
+        if (isDirectory) {
+          await promisify(this.sourceFs.writeFile)(nodePath, node)
+        } else {
+          throw new Error(`Can not write to ${nodePath}`)
+        }
+      }
+    }
+
+    this.reset()
+  }
+
+  protected async solveFsAction(method: string, args: any[]) {
+    switch(method) {
+      // read operations
+      case 'readFile':
+      case 'lstat':
+      case 'stat':
+        try {
+          return await this.volumeFs.promises[method].apply(this, args)
+        } catch(e) {
+          if (this.checkIsUnlinked(args[0] as string)) {
+            throw new Error(`No such file on path ${args[0]}`)
+          }
+          return promisify(this.sourceFs[method]).apply(this, args)
+        }
+      case 'readdir': {
+        let memResult = []
+        try {
+          memResult = await this.volumeFs.promises.readdir.apply(this, args)
+        } catch(e) {}
+        let fsResult = []
+        try {
+          const wasUnlinkedInFs = this.checkIsUnlinked(args[0])
+          fsResult = wasUnlinkedInFs ? [] : await promisify(this.sourceFs.readdir).apply(this, args)
+        } catch(e) {}
+
+        const result = new Map<string, any>()
+        for(const dirent of fsResult) {
+          const direntPath = this.pathFromReaddirEntry(dirent)
+          if (!this.checkIsUnlinked(path.resolve(args[0], direntPath))) {
+            result.set(direntPath, dirent)
+          }
+        }
+        for(const dirent of memResult) {
+          result.set(this.pathFromReaddirEntry(dirent), dirent)
+        }
+        return this.sortedArrayFromReaddirResult(result)
+      }
+      // write oprations
+      case 'writeFile':
+        this.checkWriteAllowed(args[0])
+        await this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true })
+        return this.volumeFs.promises.writeFile.apply(this, args)
+      case 'appendFile':
+        this.checkWriteAllowed(args[0])
+        await this.prepareInFs(args[0])
+        return this.volumeFs.promises.appendFile.apply(this, args)
+      case 'rename':
+        this.checkWriteAllowed(args[0])
+        this.checkWriteAllowed(args[1])
+        await this.prepareInFs(args[0])
+        this.unlinkedPaths.push(args[0])
+        return this.volumeFs.promises.rename.apply(this, args)
+      case 'copyFile':
+        await this.prepareInFs(args[0])
+        return this.volumeFs.promises.copyFile.apply(this, args)
+      case 'unlink':
+      case 'rm':
+      case 'rmdir':
+        this.checkWriteAllowed(args[0])
+        this.unlinkedPaths.push(args[0])
+        try {
+          return this.volumeFs.promises[method].apply(this, args)
+        } catch(e) {}
+        break
+      case 'mkdir':
+        this.checkWriteAllowed(args[0])
+        return this.volumeFs.promises[method].apply(this, args)
+      default:
+        throw new Error(`Method ${method} is not implemented.`)
+    }
+  }
+
+  protected checkWriteAllowed(fsPath: string) {
+    if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => fsPath.startsWith(allowedPath))) {
+      throw new Error(`Write to path ${fsPath} is not allowed in layer.`)
+    }
+  }
+
+  protected pathFromReaddirEntry(readdirEntry): string {
+    if (readdirEntry instanceof Buffer || typeof readdirEntry === 'string') {
+      return String(readdirEntry);
+    }
+    return readdirEntry.name;
+  }
+
+  protected sortedArrayFromReaddirResult(readdirResult: Map<string, any>) {
+    const array: any[] = [];
+    for (const key of Array.from(readdirResult.keys()).sort()) {
+      const value = readdirResult.get(key);
+      if (value !== undefined) array.push(value);
+    }
+    return array;
+  }
+
+  protected async prepareInFs(fsPath: string, destinationPath?: string) {
+    if (!destinationPath) {
+      destinationPath = fsPath
+    }
+    try {
+      (await this.volumeFs.promises.stat(destinationPath)).isFile()
+    } catch(e) {
+      if (this.checkIsUnlinked(fsPath)) {
+        return
+      }
+      try {
+        const content = await promisify(this.sourceFs.readFile)(fsPath) as Buffer
+        await this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true })
+        await this.volumeFs.promises.writeFile(destinationPath, content)
+      } catch(e) {
+        await this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true })
+      }
+    }
+  }
+
+  protected extractAllPaths(obj: FsNode, prefix: string = '', accumulator: {[path: string]: (string | Buffer | null)} = {}) {
+    Object.keys(obj).forEach((name) => {
+      const fullPath = path.resolve(prefix, name).toString()
+      if (typeof obj[name] === 'string' || obj[name] instanceof Buffer) {
+        accumulator[fullPath] = obj[name] as any
+      } else if (obj[name] && typeof obj[name] === 'object') {
+        this.extractAllPaths(obj[name] as FsNode, fullPath, accumulator)
+      } else {
+        accumulator[fullPath] = null
+      }
+    })
     return accumulator
   }
 
-  /**
-   * Get pointer by path
-   */
-  protected getPointer(path: PathDefinition, createPath?: boolean): {name: string; item: Item} | null {
-    const pathParts = path.split('/').filter(Boolean)
-    let item: Item | null = this.data
-    if (!item) {
-      return null
-    }
-
-    for(let i = 0; i < pathParts.length; i++) {
-      const name = pathParts[i]
-      if (i < pathParts.length - 1) {
-        if (item instanceof List) {
-          if (!item.items[name] && createPath) {
-            item.items[name] = new List()
-          }
-          item = item.items[name]
-        } else {
-          throw new Error(`DATA_LAYER :: Path ${path} not found`)
-        }
-      } else {
-        return {
-          item,
-          name,
-        }
-      }
-    }
-    return null
+  protected checkIsUnlinked(fsPath: string) {
+    return this.unlinkedPaths.find(unlinked => fsPath.startsWith(unlinked))
   }
 }

@@ -1,5 +1,3 @@
-export { Scope } from './Scope';
-export { Dependency } from './Dependency';
-export { FsDependency } from './FsDependency';
-export * from './strategies';
-export * from './interfaces';
+export * from './DataLayer';
+export * from './FileScope';
+export * from './FsDataLayer';
