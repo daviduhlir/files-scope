@@ -58,7 +58,7 @@ class DataLayer {
                     const cb = args.pop();
                     this.solveFsAction.apply(this, [propKey.toString(), args]).then((result, error) => cb(error, result));
                 };
-            }
+            },
         });
     }
     get promises() {
@@ -68,7 +68,7 @@ class DataLayer {
                     return this.promises;
                 }
                 return (...args) => this.solveFsAction.apply(this, [propKey.toString(), args]);
-            }
+            },
         });
     }
     dump() {
@@ -80,12 +80,12 @@ class DataLayer {
             nodes,
         };
     }
-    commit() {
+    commit(ignoreErrors) {
         return __awaiter(this, void 0, void 0, function* () {
             const dumped = this.dump();
             for (const unlinkedPath in dumped.unlinkedPaths) {
                 try {
-                    const stat = yield util_1.promisify(this.sourceFs.stat)(unlinkedPath);
+                    const stat = (yield util_1.promisify(this.sourceFs.stat)(unlinkedPath));
                     if (stat.isDirectory()) {
                         yield util_1.promisify(this.sourceFs.rm)(unlinkedPath, { recursive: true });
                     }
@@ -94,6 +94,9 @@ class DataLayer {
                     }
                 }
                 catch (e) {
+                    if (!ignoreErrors) {
+                        throw new Error(`Can not unlink ${unlinkedPath}`);
+                    }
                 }
             }
             for (const nodePath in dumped.nodes) {
@@ -115,7 +118,9 @@ class DataLayer {
                         yield util_1.promisify(this.sourceFs.writeFile)(nodePath, node);
                     }
                     else {
-                        throw new Error(`Can not write to ${nodePath}`);
+                        if (!ignoreErrors) {
+                            throw new Error(`Can not write to ${nodePath}`);
+                        }
                     }
                 }
             }
@@ -222,6 +227,7 @@ class DataLayer {
                 destinationPath = fsPath;
             }
             try {
+                ;
                 (yield this.volumeFs.promises.stat(destinationPath)).isFile();
             }
             catch (e) {
@@ -229,7 +235,7 @@ class DataLayer {
                     return;
                 }
                 try {
-                    const content = yield util_1.promisify(this.sourceFs.readFile)(fsPath);
+                    const content = (yield util_1.promisify(this.sourceFs.readFile)(fsPath));
                     yield this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
                     yield this.volumeFs.promises.writeFile(destinationPath, content);
                 }
@@ -240,7 +246,7 @@ class DataLayer {
         });
     }
     extractAllPaths(obj, prefix = '', accumulator = {}) {
-        Object.keys(obj).forEach((name) => {
+        Object.keys(obj).forEach(name => {
             const fullPath = path.resolve(prefix, name).toString();
             if (typeof obj[name] === 'string' || obj[name] instanceof Buffer) {
                 accumulator[fullPath] = obj[name];

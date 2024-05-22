@@ -1,7 +1,6 @@
 import { assert } from 'chai'
-import { Scope } from '../dist'
-import { delay, flatten } from './utils'
-import { SharedMutex } from '@david.uhlir/mutex'
+import { FileScope } from '../dist'
+import { delay } from './utils'
 
 /**
  * Simple locks test
@@ -10,21 +9,21 @@ describe('Nested scopes tests', function() {
   it('Single access scope nested', async function() {
     let accumulator = ''
     await Promise.all([
-      Scope.open('ROOT', {
-        a: Scope.writeAccess('dir/dirB/file1.txt'),
-      }, async (dependecies) => {
+      FileScope.prepare('./temp', {
+        a: FileScope.writeAccess('dir/dirB/file1.txt'),
+      }).open(async (fs, dependecies) => {
         accumulator += 'C:IN;'
         await delay(100)
         accumulator += 'C:OUT;'
       }),
-      Scope.open('ROOT', {
-        a: Scope.readAccess('dir/dirB/file1.txt'),
-      }, async (dependecies) => {
+      FileScope.prepare('./temp', {
+        a: FileScope.readAccess('dir/dirB/file1.txt'),
+      }).open(async (dependecies) => {
         accumulator += 'A:IN;'
         await delay(10)
-        await Scope.open('ROOT', {
-          a: Scope.writeAccess('dir/dirB/file1.txt'),
-        }, async (dependecies) => {
+        await FileScope.prepare('./temp', {
+          a: FileScope.writeAccess('dir/dirB/file1.txt'),
+        }).open(async (dependecies) => {
           accumulator += 'B:IN;'
           await delay(100)
           accumulator += 'B:OUT;'

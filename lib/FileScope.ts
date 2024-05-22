@@ -1,20 +1,11 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { FsDataLayer } from './FsDataLayer'
-import { DataLayerFsApi, DataLayerPromiseSingleFileApi } from './DataLayer';
+import { DataLayerFsApi } from './DataLayer'
+import { DataLayerPromiseSingleFileApi } from './interfaces'
 
-export type MutexKeyItem = { key: string; singleAccess: boolean }
-
-export interface FileScopeOptions {
-  mutexPrefix: string
-  maxLockingTime?: number
-  commitIfFail?: boolean
-}
-
-export const DEFAULT_SCOPE_OPTIONS: FileScopeOptions = {
-  mutexPrefix: '#fileScope:',
-  commitIfFail: false
-}
-
+/**
+ * Dependency representation with own fs api
+ */
 const dependencyFsInjector = Symbol()
 export class Dependency {
   protected _fs: DataLayerFsApi = null
@@ -23,29 +14,39 @@ export class Dependency {
 
   get fs(): DataLayerPromiseSingleFileApi {
     return new Proxy(this as any, {
-      get:
-        (target, propKey, receiver) => {
-          return (...args) => {
-            return this._fs.promises[propKey.toString()].apply(this, [this.filePath, args])
-          }
+      get: (target, propKey, receiver) => {
+        return (...args) => {
+          return this._fs.promises[propKey.toString()].apply(this, [this.filePath, args])
         }
+      },
     })
   }
-
 
   [dependencyFsInjector] = (fs: DataLayerFsApi) => {
     this._fs = fs
   }
 }
 
+/**
+ * Files scope, with mutexes implemented
+ */
+export type MutexKeyItem = { key: string; singleAccess: boolean }
+
+export interface FileScopeOptions {
+  mutexPrefix: string // prefix of mutexes
+  maxLockingTime?: number // mutex max locking time
+  commitIfFail?: boolean // commit result in case handler throws error
+}
+
+export const DEFAULT_SCOPE_OPTIONS: FileScopeOptions = {
+  mutexPrefix: '#fileScope:',
+  commitIfFail: false,
+}
+
 export class FileScope<T, K extends { [key: string]: Dependency }> {
   protected options: FileScopeOptions = DEFAULT_SCOPE_OPTIONS
 
-  constructor(
-    readonly workingDir: string,
-    readonly dependeciesMap: K,
-    options?: Partial<FileScopeOptions>,
-  ) {
+  constructor(readonly workingDir: string, readonly dependeciesMap: K, options?: Partial<FileScopeOptions>) {
     if (options) {
       this.options = {
         ...this.options,
@@ -59,42 +60,40 @@ export class FileScope<T, K extends { [key: string]: Dependency }> {
   }
 
   /**
+   * Scope prepare factory
+   */
+  static prepare<K extends { [key: string]: Dependency }>(workingDir: string, dependeciesMap: K, options?: Partial<FileScopeOptions>) {
+    return new FileScope(workingDir, dependeciesMap, options)
+  }
+
+  /**
    * Factory
    */
   static writeAccess(filePath: string): Dependency {
-    return new Dependency(
-      filePath,
-      true,
-    )
+    return new Dependency(filePath, true)
   }
 
   static readAccess(filePath: string) {
-    return new Dependency(
-      filePath,
-      false,
-    )
+    return new Dependency(filePath, false)
   }
 
   /**
    * Open scope with dependecies
    */
-  async open(
-    handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>,
-  ): Promise<T> {
-    const dependecies: Dependency[] = Object.keys(this.dependeciesMap)
-      .reduce<Dependency[]>((acc, key) => [
-        ...acc,
-        this.dependeciesMap[key],
-      ], [])
+  async open(handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
+    const dependecies: Dependency[] = Object.keys(this.dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, this.dependeciesMap[key]], [])
 
-    const fsLayer = new FsDataLayer(this.workingDir, dependecies.filter(key => key.writeAccess).map(key => key.filePath))
+    const fsLayer = new FsDataLayer(
+      this.workingDir,
+      dependecies.filter(key => key.writeAccess).map(key => key.filePath),
+    )
 
     // inject fs to dependecies
     dependecies.forEach(dependency => dependency[dependencyFsInjector](fsLayer.fs))
 
     // lock access to group
     return FileScope.lockScope(
-      dependecies.map(key => ({ key: key.filePath, singleAccess: key.writeAccess })),
+      dependecies.map(key => ({ key: this.options.mutexPrefix + key.filePath, singleAccess: key.writeAccess })),
       this.dependeciesMap,
       async () => {
         // do the stuff in scope
