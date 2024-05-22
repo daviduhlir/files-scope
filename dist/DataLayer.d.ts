@@ -2,7 +2,7 @@
 import { IFs } from 'memfs';
 import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types';
 import Stats from 'memfs/lib/Stats';
-import { MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, WriteFileOptions } from 'fs';
+import { Dirent, MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, WriteFileOptions } from 'fs';
 import { Abortable } from 'events';
 export interface DataLayerCallbackApi {
     appendFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
@@ -23,6 +23,15 @@ export interface DataLayerCallbackApi {
     mkdir(path: string, mode: MakeDirectoryOptions & {
         recursive: true;
     }, callback: (err: NodeJS.ErrnoException | null, path?: string) => void): any;
+    readdir(path: string, callback: (err: NodeJS.ErrnoException | null, data: string[]) => void): any;
+    readdir(path: string, options: {
+        encoding: BufferEncoding | null;
+        withFileTypes?: false | undefined;
+    } | BufferEncoding | undefined | null, callback: (err: NodeJS.ErrnoException | null, data: string[]) => void): any;
+    readdir(path: string, options: {
+        encoding: BufferEncoding | null;
+        withFileTypes: true;
+    } | BufferEncoding | undefined | null, callback: (err: NodeJS.ErrnoException | null, data: Dirent[]) => void): any;
     readFile(path: string, callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void): any;
     readFile(path: string, options: ({
         encoding?: BufferEncoding | undefined | null;
@@ -40,6 +49,25 @@ export interface DataLayerCallbackApi {
     unlink(path: string, callback: NoParamCallback): void;
     writeFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
     writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
+}
+export interface DataLayerPromiseSingleFileApi {
+    appendFile(data: string | Uint8Array): Promise<void>;
+    appendFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
+    copyFile(dest: string): Promise<void>;
+    copyFile(dest: string, flags: number): Promise<void>;
+    readFile(): Promise<string | Buffer>;
+    readFile(options: ({
+        encoding?: BufferEncoding | undefined | null;
+        flag?: string | undefined;
+    } & Abortable) | undefined | null): Promise<string | Buffer>;
+    rename(newPath: string): Promise<void>;
+    stat(): Promise<Stats>;
+    stat(options: (StatOptions & {
+        bigint?: false | undefined;
+    }) | undefined): Promise<Stats>;
+    unlink(): Promise<void>;
+    writeFile(data: string | Uint8Array): Promise<void>;
+    writeFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
 }
 export interface DataLayerPromiseApi {
     appendFile(path: string, data: string | Uint8Array): Promise<void>;
@@ -60,6 +88,15 @@ export interface DataLayerPromiseApi {
     mkdir(path: string, mode: MakeDirectoryOptions & {
         recursive: true;
     }): Promise<string | undefined>;
+    readdir(path: string): Promise<string[]>;
+    readdir(path: string, options?: {
+        encoding: BufferEncoding | null;
+        withFileTypes?: false | undefined;
+    } | BufferEncoding | undefined | null): Promise<string[]>;
+    readdir(path: string, options?: {
+        encoding: BufferEncoding | null;
+        withFileTypes: true;
+    } | BufferEncoding | undefined | null): Promise<Dirent[]>;
     readFile(path: string): Promise<string | Buffer>;
     readFile(path: string, options: ({
         encoding?: BufferEncoding | undefined | null;

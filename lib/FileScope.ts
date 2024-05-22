@@ -1,7 +1,6 @@
 import { SharedMutex } from '@david.uhlir/mutex'
-import { IFs } from 'memfs'
 import { FsDataLayer } from './FsDataLayer'
-import { DataLayerFsApi } from './DataLayer';
+import { DataLayerFsApi, DataLayerPromiseSingleFileApi } from './DataLayer';
 
 export type MutexKeyItem = { key: string; singleAccess: boolean }
 
@@ -16,9 +15,27 @@ export const DEFAULT_SCOPE_OPTIONS: FileScopeOptions = {
   commitIfFail: false
 }
 
-export interface Dependency {
-  filePath: string
-  writeAccess: boolean
+const dependencyFsInjector = Symbol()
+export class Dependency {
+  protected _fs: DataLayerFsApi = null
+
+  constructor(readonly filePath: string, readonly writeAccess?: boolean) {}
+
+  get fs(): DataLayerPromiseSingleFileApi {
+    return new Proxy(this as any, {
+      get:
+        (target, propKey, receiver) => {
+          return (...args) => {
+            return this._fs.promises[propKey.toString()].apply(this, [this.filePath, args])
+          }
+        }
+    })
+  }
+
+
+  [dependencyFsInjector] = (fs: DataLayerFsApi) => {
+    this._fs = fs
+  }
 }
 
 export class FileScope<T, K extends { [key: string]: Dependency }> {
@@ -45,17 +62,17 @@ export class FileScope<T, K extends { [key: string]: Dependency }> {
    * Factory
    */
   static writeAccess(filePath: string): Dependency {
-    return {
+    return new Dependency(
       filePath,
-      writeAccess: true,
-    }
+      true,
+    )
   }
 
   static readAccess(filePath: string) {
-    return {
+    return new Dependency(
       filePath,
-      writeAccess: false,
-    }
+      false,
+    )
   }
 
   /**
@@ -71,6 +88,9 @@ export class FileScope<T, K extends { [key: string]: Dependency }> {
       ], [])
 
     const fsLayer = new FsDataLayer(this.workingDir, dependecies.filter(key => key.writeAccess).map(key => key.filePath))
+
+    // inject fs to dependecies
+    dependecies.forEach(dependency => dependency[dependencyFsInjector](fsLayer.fs))
 
     // lock access to group
     return FileScope.lockScope(
