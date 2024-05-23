@@ -42,13 +42,6 @@ export class Scope<T> {
   }
 
   /**
-   * Scope prepare factory
-   */
-  static prepare(workingDir: string, options?: Partial<ScopeOptions>) {
-    return new Scope(options)
-  }
-
-  /**
    * Open scope with dependecies
    */
   async open<K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {

@@ -29,9 +29,6 @@ class Scope {
     createDatalayer(dependecies) {
         return null;
     }
-    static prepare(workingDir, options) {
-        return new Scope(options);
-    }
     open(dependeciesMap, handler) {
         return __awaiter(this, void 0, void 0, function* () {
             const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);

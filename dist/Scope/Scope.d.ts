@@ -14,7 +14,6 @@ export declare class Scope<T> {
     protected options: ScopeOptions;
     constructor(options?: Partial<ScopeOptions>);
     protected createDatalayer(dependecies: Dependency[]): DataLayer;
-    static prepare(workingDir: string, options?: Partial<ScopeOptions>): Scope<unknown>;
     open<K extends {
         [key: string]: Dependency;
     }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;
