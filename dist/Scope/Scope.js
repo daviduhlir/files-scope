@@ -17,20 +17,17 @@ exports.DEFAULT_SCOPE_OPTIONS = {
     commitIfFail: false,
 };
 class Scope {
-    constructor(dependeciesMap, options) {
-        this.dependeciesMap = dependeciesMap;
+    constructor(options) {
         this.options = exports.DEFAULT_SCOPE_OPTIONS;
         this.opened = false;
         if (options) {
             this.options = Object.assign(Object.assign({}, this.options), options);
         }
-        this.initialize();
-    }
-    initialize() {
         if (!this.options.mutexPrefix.length) {
             throw new Error('Mutex prefix key must be at least 1 character');
         }
-        this.dependeciesList = Object.keys(this.dependeciesMap).reduce((acc, key) => [...acc, this.dependeciesMap[key]], []);
+    }
+    beforeOpen() {
     }
     get fs() {
         if (!this.opened) {
@@ -38,17 +35,19 @@ class Scope {
         }
         return this.dataLayer.fs;
     }
-    static prepare(workingDir, dependeciesMap, options) {
-        return new Scope(dependeciesMap, options);
+    static prepare(workingDir, options) {
+        return new Scope(options);
     }
-    open(handler) {
+    open(dependeciesMap, handler) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
+            this.beforeOpen();
             this.opened = true;
             this.dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](this));
-            return Scope.lockScope(this.dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), this.dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
+            return Scope.lockScope(this.dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                 let result;
                 try {
-                    result = yield handler(this.dataLayer.fs, this.dependeciesMap);
+                    result = yield handler(this.dataLayer.fs, dependeciesMap);
                 }
                 catch (e) {
                     if (this.options.commitIfFail) {

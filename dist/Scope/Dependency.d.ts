@@ -4,9 +4,9 @@ export declare const dependencyFsInjector: unique symbol;
 export declare class Dependency {
     readonly path: string;
     readonly writeAccess?: boolean;
-    protected scope: Scope<any, any>;
+    protected scope: Scope<any>;
     constructor(path: string, writeAccess?: boolean);
-    [dependencyFsInjector]: (scope: Scope<any, any>) => void;
+    [dependencyFsInjector]: (scope: Scope<any>) => void;
     protected getFsProxy(): any;
     static writeFileAccess(filePath: string): DependencyFile;
     static readFileAccess(filePath: string): DependencyFile;

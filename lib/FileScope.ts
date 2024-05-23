@@ -4,16 +4,15 @@ import { Dependency } from './Scope/Dependency'
 import { Scope, ScopeOptions } from './Scope/Scope'
 import { link } from 'linkfs'
 
-export class FileScope<T, K extends { [key: string]: Dependency }> extends Scope<T, K> {
-  constructor(readonly workingDir: string, readonly dependeciesMap: K, options?: Partial<ScopeOptions>) {
-    super(dependeciesMap)
-    this.initializeDataLayer()
+export class FileScope<T> extends Scope<T> {
+  constructor(readonly workingDir: string, options?: Partial<ScopeOptions>) {
+    super(options)
   }
 
   /**
    * Initialize data layer
    */
-  protected initializeDataLayer() {
+  protected beforeOpen() {
     this.dataLayer = new DataLayer(
       link(fs, ['/', this.workingDir]),
       this.dependeciesList.filter(key => key.writeAccess).map(key => key.path),
@@ -23,7 +22,7 @@ export class FileScope<T, K extends { [key: string]: Dependency }> extends Scope
   /**
    * Scope prepare factory
    */
-  static prepare<K extends { [key: string]: Dependency }>(workingDir: string, dependeciesMap: K, options?: Partial<ScopeOptions>) {
-    return new FileScope(workingDir, dependeciesMap, options)
+  static prepare(workingDir: string, options?: Partial<ScopeOptions>) {
+    return new FileScope(workingDir, options)
   }
 }

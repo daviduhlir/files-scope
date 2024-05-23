@@ -7,9 +7,9 @@ import { Scope } from './Scope'
  */
 export const dependencyFsInjector = Symbol()
 export class Dependency {
-  protected scope: Scope<any, any> = null
+  protected scope: Scope<any> = null
   constructor(readonly path: string, readonly writeAccess?: boolean) {}
-  [dependencyFsInjector] = (scope: Scope<any, any>) => {
+  [dependencyFsInjector] = (scope: Scope<any>) => {
     this.scope = scope
   }
 

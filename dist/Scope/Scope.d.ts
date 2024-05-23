@@ -10,21 +10,18 @@ export interface ScopeOptions {
     commitIfFail?: boolean;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
-export declare class Scope<T, K extends {
-    [key: string]: Dependency;
-}> {
-    readonly dependeciesMap: K;
+export declare class Scope<T> {
     protected options: ScopeOptions;
     protected dataLayer: DataLayer;
     protected dependeciesList: Dependency[];
     protected opened: boolean;
-    constructor(dependeciesMap: K, options?: Partial<ScopeOptions>);
-    protected initialize(): void;
+    constructor(options?: Partial<ScopeOptions>);
+    protected beforeOpen(): void;
     get fs(): DataLayerFsApi;
-    static prepare<K extends {
+    static prepare(workingDir: string, options?: Partial<ScopeOptions>): Scope<unknown>;
+    open<K extends {
         [key: string]: Dependency;
-    }>(workingDir: string, dependeciesMap: K, options?: Partial<ScopeOptions>): Scope<unknown, K>;
-    open(handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;
+    }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;
     protected static lockScope<T, K extends {
         [key: string]: Dependency;
     }>(mutexes: MutexKeyItem[], dependeciesMap: K, handler: () => Promise<T>, maxLockingTime?: number): any;

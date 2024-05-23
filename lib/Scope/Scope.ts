@@ -18,30 +18,29 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   commitIfFail: false,
 }
 
-export class Scope<T, K extends { [key: string]: Dependency }> {
+export class Scope<T> {
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
   protected dataLayer: DataLayer
   protected dependeciesList: Dependency[]
   protected opened: boolean = false
 
-  constructor(readonly dependeciesMap: K, options?: Partial<ScopeOptions>) {
+  constructor(options?: Partial<ScopeOptions>) {
     if (options) {
       this.options = {
         ...this.options,
         ...options,
       }
     }
-    this.initialize()
+    if (!this.options.mutexPrefix.length) {
+      throw new Error('Mutex prefix key must be at least 1 character')
+    }
   }
 
   /**
    * Initialize scope
    */
-  protected initialize() {
-    if (!this.options.mutexPrefix.length) {
-      throw new Error('Mutex prefix key must be at least 1 character')
-    }
-    this.dependeciesList = Object.keys(this.dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, this.dependeciesMap[key]], [])
+  protected beforeOpen() {
+    // use this to preapre fs
   }
 
   /**
@@ -57,14 +56,19 @@ export class Scope<T, K extends { [key: string]: Dependency }> {
   /**
    * Scope prepare factory
    */
-  static prepare<K extends { [key: string]: Dependency }>(workingDir: string, dependeciesMap: K, options?: Partial<ScopeOptions>) {
-    return new Scope(dependeciesMap, options)
+  static prepare(workingDir: string, options?: Partial<ScopeOptions>) {
+    return new Scope(options)
   }
 
   /**
    * Open scope with dependecies
    */
-  async open(handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
+  async open<K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
+    this.dependeciesList = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
+
+    // call before open to preapre fs, etc...
+    this.beforeOpen()
+
     this.opened = true
     // inject fs to dependecies
     this.dependeciesList.forEach(dependency => dependency[dependencyFsInjector](this))
@@ -72,12 +76,12 @@ export class Scope<T, K extends { [key: string]: Dependency }> {
     // lock access to group
     return Scope.lockScope(
       this.dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
-      this.dependeciesMap,
+      dependeciesMap,
       async () => {
         // do the stuff in scope
         let result
         try {
-          result = await handler(this.dataLayer.fs, this.dependeciesMap)
+          result = await handler(this.dataLayer.fs, dependeciesMap)
         } catch (e) {
           if (this.options.commitIfFail) {
             await this.dataLayer.commit()

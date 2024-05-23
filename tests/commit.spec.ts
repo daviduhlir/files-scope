@@ -11,9 +11,9 @@ describe('Commit scope tests', function() {
   })
 
   it('Create file', async function() {
-    await FileScope.prepare('./temp', {
+    await FileScope.prepare('./temp').open({
       a: Dependency.writeFileAccess('/dir/file.txt'),
-    }).open(async (fs, dependecies) => {
+    }, async (fs, dependecies) => {
       await dependecies.a.fs.writeFile('Hello')
     })
 
@@ -23,9 +23,9 @@ describe('Commit scope tests', function() {
 
   it('Read create file', async function() {
     let content
-    await FileScope.prepare('./temp', {
+    await FileScope.prepare('./temp').open({
       a: Dependency.readFileAccess('/dir/file.txt'),
-    }).open(async (fs, dependecies) => {
+    }, async (fs, dependecies) => {
       content = (await dependecies.a.fs.readFile()).toString()
     })
 
@@ -33,9 +33,9 @@ describe('Commit scope tests', function() {
   })
 
   it('Unlink created file', async function() {
-    await FileScope.prepare('./temp', {
+    await FileScope.prepare('./temp').open({
       a: Dependency.writeFileAccess('/dir/file.txt'),
-    }).open(async (fs, dependecies) => {
+    }, async (fs, dependecies) => {
       await dependecies.a.fs.unlink()
     })
 
@@ -51,9 +51,9 @@ describe('Commit scope tests', function() {
   })
 
   it('Created folder', async function() {
-    await FileScope.prepare('./temp', {
+    await FileScope.prepare('./temp').open({
       root: Dependency.writeFolderAccess('/dir'),
-    }).open(async (fs, dependecies) => {
+    }, async (fs, dependecies) => {
       await fs.promises.mkdir('/dir/abcd', { recursive: true })
     })
 
@@ -69,9 +69,9 @@ describe('Commit scope tests', function() {
   })
 
   it('Created folder using folder api', async function() {
-    await FileScope.prepare('./temp', {
+    await FileScope.prepare('./temp').open({
       root: Dependency.writeFolderAccess('/dir'),
-    }).open(async (fs, dependecies) => {
+    }, async (fs, dependecies) => {
       await dependecies.root.fs.mkdir('/efgh', { recursive: true })
     })
 
@@ -89,9 +89,9 @@ describe('Commit scope tests', function() {
   it('Reject flush on exception', async function() {
     let thrownError
     try {
-      await FileScope.prepare('./temp', {
+      await FileScope.prepare('./temp').open({
         a: Dependency.writeFileAccess('/dir/file.txt'),
-      }).open(async (fs, dependecies) => {
+      }, async (fs, dependecies) => {
         await dependecies.a.fs.writeFile('Hello')
         throw new Error('Test')
       })

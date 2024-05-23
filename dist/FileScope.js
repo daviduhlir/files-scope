@@ -25,17 +25,15 @@ const DataLayer_1 = require("./DataLayer/DataLayer");
 const Scope_1 = require("./Scope/Scope");
 const linkfs_1 = require("linkfs");
 class FileScope extends Scope_1.Scope {
-    constructor(workingDir, dependeciesMap, options) {
-        super(dependeciesMap);
+    constructor(workingDir, options) {
+        super(options);
         this.workingDir = workingDir;
-        this.dependeciesMap = dependeciesMap;
-        this.initializeDataLayer();
     }
-    initializeDataLayer() {
+    beforeOpen() {
         this.dataLayer = new DataLayer_1.DataLayer(linkfs_1.link(fs, ['/', this.workingDir]), this.dependeciesList.filter(key => key.writeAccess).map(key => key.path));
     }
-    static prepare(workingDir, dependeciesMap, options) {
-        return new FileScope(workingDir, dependeciesMap, options);
+    static prepare(workingDir, options) {
+        return new FileScope(workingDir, options);
     }
 }
 exports.FileScope = FileScope;

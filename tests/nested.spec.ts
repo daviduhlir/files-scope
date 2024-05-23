@@ -9,21 +9,21 @@ describe('Nested scopes tests', function() {
   it('Single access scope nested', async function() {
     let accumulator = ''
     await Promise.all([
-      FileScope.prepare('./temp', {
+      FileScope.prepare('./temp').open({
         a: Dependency.writeFileAccess('/dir/dirB/file1.txt'),
-      }).open(async (fs, dependecies) => {
+      }, async (fs, dependecies) => {
         accumulator += 'C:IN;'
         await delay(100)
         accumulator += 'C:OUT;'
       }),
-      FileScope.prepare('./temp', {
+      FileScope.prepare('./temp').open({
         a: Dependency.readFileAccess('/dir/dirB/file1.txt'),
-      }).open(async (dependecies) => {
+      }, async (dependecies) => {
         accumulator += 'A:IN;'
         await delay(10)
-        await FileScope.prepare('./temp', {
+        await FileScope.prepare('./temp').open({
           a: Dependency.writeFileAccess('/dir/dirB/file1.txt'),
-        }).open(async (dependecies) => {
+        }, async (dependecies) => {
           accumulator += 'B:IN;'
           await delay(100)
           accumulator += 'B:OUT;'
