@@ -5,7 +5,7 @@ import { createSubpath } from '../utils'
 /**
  * Dependency representation with own fs api
  */
-export const dependencyFsInjector = Symbol()
+export const dependencyFsInjector = '__dependencyFsInjector__'
 export class Dependency {
   protected dataLayer: DataLayer = null
   constructor(readonly path: string, readonly writeAccess?: boolean) {}

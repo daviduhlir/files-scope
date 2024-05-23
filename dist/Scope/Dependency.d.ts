@@ -1,6 +1,6 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces';
 import { DataLayer } from '../DataLayer/DataLayer';
-export declare const dependencyFsInjector: unique symbol;
+export declare const dependencyFsInjector = "__dependencyFsInjector__";
 export declare class Dependency {
     readonly path: string;
     readonly writeAccess?: boolean;

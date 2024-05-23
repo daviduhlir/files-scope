@@ -3,7 +3,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyFolder = exports.DependencyFile = exports.Dependency = exports.dependencyFsInjector = void 0;
 const utils_1 = require("../utils");
-exports.dependencyFsInjector = Symbol();
+exports.dependencyFsInjector = '__dependencyFsInjector__';
 class Dependency {
     constructor(path, writeAccess) {
         this.path = path;
