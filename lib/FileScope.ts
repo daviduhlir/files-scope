@@ -3,10 +3,15 @@ import { DataLayer } from './DataLayer/DataLayer'
 import { Dependency } from './Scope/Dependency'
 import { Scope, ScopeOptions } from './Scope/Scope'
 import { link } from 'linkfs'
+import { createSubpath } from './utils'
 
 export class FileScope<T> extends Scope<T> {
   constructor(readonly workingDir: string, options?: Partial<ScopeOptions>) {
     super(options)
+  }
+
+  public subScope(subPath: string) {
+    return FileScope.prepare(createSubpath(this.workingDir, subPath))
   }
 
   /**

@@ -1,6 +1,6 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
-import * as path from 'path'
 import { DataLayer } from '../DataLayer/DataLayer'
+import { createSubpath } from '../utils'
 
 /**
  * Dependency representation with own fs api
@@ -56,15 +56,15 @@ export class DependencyFile extends Dependency {
 }
 
 export class DependencyFolder extends Dependency {
-  protected relativizePath(inputPath: string) {
-    return inputPath.startsWith('/') ? `.${inputPath}` : inputPath
+  relativizePath(requestedPath: any): string {
+    throw new Error('Method not implemented.')
   }
   get fs(): DataLayerPromiseApi {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         return (...args) => {
           const requestedPath = args.shift()
-          const callPath = path.resolve(this.path, this.relativizePath(requestedPath))
+          const callPath = createSubpath(this.path, requestedPath)
           return this.dataLayer.fs.promises[propKey.toString()].apply(this, [callPath, ...args])
         }
       },
