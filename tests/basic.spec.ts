@@ -1,6 +1,7 @@
 import { assert } from 'chai'
 import { FileScope } from '../dist'
 import { delay } from './utils'
+import { Dependency } from '../dist/Dependency'
 
 /**
  * Simple scopes locks test
@@ -11,8 +12,8 @@ describe('Basic scope tests', function() {
     let open = false
     await Promise.all([
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('/dir/dirB/file1.txt'),
-        b: FileScope.readAccess('/dir/dirB/file2.txt'),
+        a: Dependency.readFileAccess('/dir/dirB/file1.txt'),
+        b: Dependency.readFileAccess('/dir/dirB/file2.txt'),
       }).open(async (fs, dependecies) => {
         if (open) {
           failed = true
@@ -22,7 +23,7 @@ describe('Basic scope tests', function() {
         open = false
       }),
       FileScope.prepare('./temp', {
-        a: FileScope.writeAccess('/dir/dirB/file1.txt'),
+        a: Dependency.writeFileAccess('/dir/dirB/file1.txt'),
       }).open(async (fs, dependecies) => {
         if (open) {
           failed = true
@@ -40,15 +41,15 @@ describe('Basic scope tests', function() {
     let accumulator = ''
     await Promise.all([
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('/dir/dirB/file1.txt'),
-        b: FileScope.readAccess('/dir/dirB/file2.txt'),
+        a: Dependency.readFileAccess('/dir/dirB/file1.txt'),
+        b: Dependency.readFileAccess('/dir/dirB/file2.txt'),
       }).open(async (fs, dependecies) => {
         accumulator += 'A:IN;'
         await delay(100)
         accumulator += 'A:OUT;'
       }),
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('/dir/dirB/file1.txt'),
+        a: Dependency.readFileAccess('/dir/dirB/file1.txt'),
       }).open(async (fs, dependecies) => {
         accumulator += 'B:IN;'
         await delay(100)
@@ -65,7 +66,7 @@ describe('Basic scope tests', function() {
         (async () => {
           try {
             await FileScope.prepare('./temp', {
-              a: FileScope.writeAccess('/dir/dirB/file1.txt'),
+              a: Dependency.writeFileAccess('/dir/dirB/file1.txt'),
             }).open(async (dependecies) => {
               accumulator += 'A:IN;'
               throw new Error('TEST')
@@ -73,7 +74,7 @@ describe('Basic scope tests', function() {
           } catch(e) {}
         })(),
         FileScope.prepare('./temp', {
-          a: FileScope.writeAccess('/dir/dirB/file1.txt'),
+          a: Dependency.writeFileAccess('/dir/dirB/file1.txt'),
         }).open(async (fs, dependecies) => {
           accumulator += 'B:IN;'
           await delay(100)
@@ -88,7 +89,7 @@ describe('Basic scope tests', function() {
     let accumulator = ''
     try {
       await FileScope.prepare('./temp', {
-        a: FileScope.readAccess('/dir/dirB/file1.txt'),
+        a: Dependency.readFileAccess('/dir/dirB/file1.txt'),
       }).open(async (fs, dependecies) => {
         await dependecies.a.fs.writeFile('Hello')
       })
@@ -104,8 +105,8 @@ describe('Basic scope tests', function() {
     let open = false
     await Promise.all([
       FileScope.prepare('./temp', {
-        a: FileScope.readAccess('/dir/dirA/file1.txt'),
-        b: FileScope.readAccess('/dir/dirA/file2.txt'),
+        a: Dependency.readFileAccess('/dir/dirA/file1.txt'),
+        b: Dependency.readFileAccess('/dir/dirA/file2.txt'),
       }).open(async (fs, dependecies) => {
         if (open) {
           failed = true
@@ -115,7 +116,7 @@ describe('Basic scope tests', function() {
         open = false
       }),
       FileScope.prepare('./temp', {
-        a: FileScope.writeAccess('/dir'),
+        a: Dependency.writeFileAccess('/dir'),
       }).open(async (dependecies) => {
         if (open) {
           failed = true
@@ -131,7 +132,7 @@ describe('Basic scope tests', function() {
 
   it('Real write', async function() {
     await FileScope.prepare('./temp', {
-      a: FileScope.writeAccess('/dir/file.txt'),
+      a: Dependency.writeFileAccess('/dir/file.txt'),
     }).open(async (fs, dependecies) => {
       await dependecies.a.fs.writeFile('Hello')
     })

@@ -61,6 +61,7 @@ export interface DataLayerPromiseSingleFileApi {
   writeFile(data: string | Uint8Array): Promise<void>
   writeFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>
 }
+
 export interface DataLayerPromiseApi {
   appendFile(path: string, data: string | Uint8Array): Promise<void>
   appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>

@@ -1,6 +1,7 @@
 import { assert } from 'chai'
 import { FileScope } from '../dist'
 import fs from 'fs'
+import { Dependency } from '../dist/Dependency'
 
 /**
  * Commit tests
@@ -12,7 +13,7 @@ describe('Commit scope tests', function() {
 
   it('Create file', async function() {
     await FileScope.prepare('./temp', {
-      a: FileScope.writeAccess('/dir/file.txt'),
+      a: Dependency.writeFileAccess('/dir/file.txt'),
     }).open(async (fs, dependecies) => {
       await dependecies.a.fs.writeFile('Hello')
     })
@@ -24,7 +25,7 @@ describe('Commit scope tests', function() {
   it('Read create file', async function() {
     let content
     await FileScope.prepare('./temp', {
-      a: FileScope.readAccess('/dir/file.txt'),
+      a: Dependency.readFileAccess('/dir/file.txt'),
     }).open(async (fs, dependecies) => {
       content = (await dependecies.a.fs.readFile()).toString()
     })
@@ -34,7 +35,7 @@ describe('Commit scope tests', function() {
 
   it('Unlink created file', async function() {
     await FileScope.prepare('./temp', {
-      a: FileScope.writeAccess('/dir/file.txt'),
+      a: Dependency.writeFileAccess('/dir/file.txt'),
     }).open(async (fs, dependecies) => {
       await dependecies.a.fs.unlink()
     })
@@ -52,7 +53,7 @@ describe('Commit scope tests', function() {
 
   it('Created folder', async function() {
     await FileScope.prepare('./temp', {
-      root: FileScope.writeAccess('/dir'),
+      root: Dependency.writeFolderAccess('/dir'),
     }).open(async (fs, dependecies) => {
       await fs.promises.mkdir('/dir/abcd', { recursive: true })
     })
@@ -68,11 +69,29 @@ describe('Commit scope tests', function() {
     assert(stat.isDirectory(), 'Directory should exists on disk')
   })
 
+  it('Created folder using folder api', async function() {
+    await FileScope.prepare('./temp', {
+      root: Dependency.writeFolderAccess('/dir'),
+    }).open(async (fs, dependecies) => {
+      await dependecies.root.fs.mkdir('/efgh', { recursive: true })
+    })
+
+    let stat
+    let error
+    try {
+      stat = fs.statSync('./temp/dir/efgh')
+    } catch(e) {
+      error = e
+    }
+
+    assert(stat.isDirectory(), 'Directory should exists on disk')
+  })
+
   it('Reject flush on exception', async function() {
     let thrownError
     try {
       await FileScope.prepare('./temp', {
-        a: FileScope.writeAccess('/dir/file.txt'),
+        a: Dependency.writeFileAccess('/dir/file.txt'),
       }).open(async (fs, dependecies) => {
         await dependecies.a.fs.writeFile('Hello')
         throw new Error('Test')

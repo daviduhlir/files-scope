@@ -8,33 +8,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FileScope = exports.DEFAULT_SCOPE_OPTIONS = exports.Dependency = void 0;
+exports.FileScope = exports.DEFAULT_SCOPE_OPTIONS = void 0;
 const mutex_1 = require("@david.uhlir/mutex");
 const FsDataLayer_1 = require("./FsDataLayer");
-const dependencyFsInjector = Symbol();
-class Dependency {
-    constructor(filePath, writeAccess) {
-        this.filePath = filePath;
-        this.writeAccess = writeAccess;
-        this._fs = null;
-        this[_a] = (fs) => {
-            this._fs = fs;
-        };
-    }
-    get fs() {
-        return new Proxy(this, {
-            get: (target, propKey, receiver) => {
-                return (...args) => {
-                    return this._fs.promises[propKey.toString()].apply(this, [this.filePath, args]);
-                };
-            },
-        });
-    }
-}
-exports.Dependency = Dependency;
-_a = dependencyFsInjector;
+const Dependency_1 = require("./Dependency");
 exports.DEFAULT_SCOPE_OPTIONS = {
     mutexPrefix: '#fileScope:',
     commitIfFail: false,
@@ -54,18 +32,12 @@ class FileScope {
     static prepare(workingDir, dependeciesMap, options) {
         return new FileScope(workingDir, dependeciesMap, options);
     }
-    static writeAccess(filePath) {
-        return new Dependency(filePath, true);
-    }
-    static readAccess(filePath) {
-        return new Dependency(filePath, false);
-    }
     open(handler) {
         return __awaiter(this, void 0, void 0, function* () {
             const dependecies = Object.keys(this.dependeciesMap).reduce((acc, key) => [...acc, this.dependeciesMap[key]], []);
-            const fsLayer = new FsDataLayer_1.FsDataLayer(this.workingDir, dependecies.filter(key => key.writeAccess).map(key => key.filePath));
-            dependecies.forEach(dependency => dependency[dependencyFsInjector](fsLayer.fs));
-            return FileScope.lockScope(dependecies.map(key => ({ key: this.options.mutexPrefix + key.filePath, singleAccess: key.writeAccess })), this.dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
+            const fsLayer = new FsDataLayer_1.FsDataLayer(this.workingDir, dependecies.filter(key => key.writeAccess).map(key => key.path));
+            dependecies.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](fsLayer.fs));
+            return FileScope.lockScope(dependecies.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), this.dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                 let result;
                 try {
                     result = yield handler(fsLayer.fs, this.dependeciesMap);

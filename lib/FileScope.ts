@@ -1,31 +1,7 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { FsDataLayer } from './FsDataLayer'
 import { DataLayerFsApi } from './DataLayer'
-import { DataLayerPromiseSingleFileApi } from './interfaces'
-
-/**
- * Dependency representation with own fs api
- */
-const dependencyFsInjector = Symbol()
-export class Dependency {
-  protected _fs: DataLayerFsApi = null
-
-  constructor(readonly filePath: string, readonly writeAccess?: boolean) {}
-
-  get fs(): DataLayerPromiseSingleFileApi {
-    return new Proxy(this as any, {
-      get: (target, propKey, receiver) => {
-        return (...args) => {
-          return this._fs.promises[propKey.toString()].apply(this, [this.filePath, args])
-        }
-      },
-    })
-  }
-
-  [dependencyFsInjector] = (fs: DataLayerFsApi) => {
-    this._fs = fs
-  }
-}
+import { Dependency, dependencyFsInjector } from './Dependency'
 
 /**
  * Files scope, with mutexes implemented
@@ -67,17 +43,6 @@ export class FileScope<T, K extends { [key: string]: Dependency }> {
   }
 
   /**
-   * Factory
-   */
-  static writeAccess(filePath: string): Dependency {
-    return new Dependency(filePath, true)
-  }
-
-  static readAccess(filePath: string) {
-    return new Dependency(filePath, false)
-  }
-
-  /**
    * Open scope with dependecies
    */
   async open(handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
@@ -85,7 +50,7 @@ export class FileScope<T, K extends { [key: string]: Dependency }> {
 
     const fsLayer = new FsDataLayer(
       this.workingDir,
-      dependecies.filter(key => key.writeAccess).map(key => key.filePath),
+      dependecies.filter(key => key.writeAccess).map(key => key.path),
     )
 
     // inject fs to dependecies
@@ -93,7 +58,7 @@ export class FileScope<T, K extends { [key: string]: Dependency }> {
 
     // lock access to group
     return FileScope.lockScope(
-      dependecies.map(key => ({ key: this.options.mutexPrefix + key.filePath, singleAccess: key.writeAccess })),
+      dependecies.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
       this.dependeciesMap,
       async () => {
         // do the stuff in scope

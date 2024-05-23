@@ -1,14 +1,5 @@
 import { DataLayerFsApi } from './DataLayer';
-import { DataLayerPromiseSingleFileApi } from './interfaces';
-declare const dependencyFsInjector: unique symbol;
-export declare class Dependency {
-    readonly filePath: string;
-    readonly writeAccess?: boolean;
-    protected _fs: DataLayerFsApi;
-    constructor(filePath: string, writeAccess?: boolean);
-    get fs(): DataLayerPromiseSingleFileApi;
-    [dependencyFsInjector]: (fs: DataLayerFsApi) => void;
-}
+import { Dependency } from './Dependency';
 export declare type MutexKeyItem = {
     key: string;
     singleAccess: boolean;
@@ -29,11 +20,8 @@ export declare class FileScope<T, K extends {
     static prepare<K extends {
         [key: string]: Dependency;
     }>(workingDir: string, dependeciesMap: K, options?: Partial<FileScopeOptions>): FileScope<unknown, K>;
-    static writeAccess(filePath: string): Dependency;
-    static readAccess(filePath: string): Dependency;
     open(handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;
     protected static lockScope<T, K extends {
         [key: string]: Dependency;
     }>(mutexes: MutexKeyItem[], dependeciesMap: K, handler: () => Promise<T>, maxLockingTime?: number): any;
 }
-export {};
