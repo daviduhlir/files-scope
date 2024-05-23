@@ -10,11 +10,11 @@ export interface ScopeOptions {
     commitIfFail?: boolean;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
-export declare class Scope<T> {
+export declare class Scope {
     protected options: ScopeOptions;
     constructor(options?: Partial<ScopeOptions>);
     protected createDatalayer(dependecies: Dependency[]): DataLayer;
-    open<K extends {
+    open<T, K extends {
         [key: string]: Dependency;
     }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;
     protected static lockScope<T, K extends {

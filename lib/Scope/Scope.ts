@@ -18,7 +18,7 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   commitIfFail: false,
 }
 
-export class Scope<T> {
+export class Scope {
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
 
   constructor(options?: Partial<ScopeOptions>) {
@@ -44,7 +44,7 @@ export class Scope<T> {
   /**
    * Open scope with dependecies
    */
-  async open<K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
+  async open<T, K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
     const dependeciesList = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
 
     // call before open to preapre fs, etc...

@@ -5,7 +5,7 @@ import { Scope, ScopeOptions } from './Scope/Scope'
 import { link } from 'linkfs'
 import { createSubpath } from './utils'
 
-export class FileScope<T> extends Scope<T> {
+export class FileScope extends Scope {
   constructor(readonly workingDir: string, options?: Partial<ScopeOptions>) {
     super(options)
   }
