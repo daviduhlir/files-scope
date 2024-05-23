@@ -1,6 +1,8 @@
-import { FsDataLayer } from '../DataLayer/FsDataLayer'
-import { Dependency } from './Dependency'
-import { Scope, ScopeOptions } from './Scope'
+import * as fs from 'fs'
+import { DataLayer } from './DataLayer/DataLayer'
+import { Dependency } from './Scope/Dependency'
+import { Scope, ScopeOptions } from './Scope/Scope'
+import { link } from 'linkfs'
 
 export class FileScope<T, K extends { [key: string]: Dependency }> extends Scope<T, K> {
   constructor(readonly workingDir: string, readonly dependeciesMap: K, options?: Partial<ScopeOptions>) {
@@ -12,8 +14,8 @@ export class FileScope<T, K extends { [key: string]: Dependency }> extends Scope
    * Initialize data layer
    */
   protected initializeDataLayer() {
-    this.dataLayer = new FsDataLayer(
-      this.workingDir,
+    this.dataLayer = new DataLayer(
+      link(fs, ['/', this.workingDir]),
       this.dependeciesList.filter(key => key.writeAccess).map(key => key.path),
     )
   }

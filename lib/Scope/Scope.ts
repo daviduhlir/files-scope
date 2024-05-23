@@ -1,6 +1,5 @@
 import { SharedMutex } from '@david.uhlir/mutex'
-import { FsDataLayer } from '../DataLayer/FsDataLayer'
-import { DataLayerFsApi } from '../DataLayer/DataLayer'
+import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
 
 /**
@@ -21,7 +20,7 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
 
 export class Scope<T, K extends { [key: string]: Dependency }> {
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
-  protected dataLayer: FsDataLayer
+  protected dataLayer: DataLayer
   protected dependeciesList: Dependency[]
   protected opened: boolean = false
 

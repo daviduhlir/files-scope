@@ -19,15 +19,24 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FsDataLayer = void 0;
+exports.FileScope = void 0;
 const fs = __importStar(require("fs"));
+const DataLayer_1 = require("./DataLayer/DataLayer");
+const Scope_1 = require("./Scope/Scope");
 const linkfs_1 = require("linkfs");
-const DataLayer_1 = require("./DataLayer");
-class FsDataLayer extends DataLayer_1.DataLayer {
-    constructor(workingDir, writeAllowedPaths) {
-        super(linkfs_1.link(fs, ['/', workingDir]), writeAllowedPaths);
+class FileScope extends Scope_1.Scope {
+    constructor(workingDir, dependeciesMap, options) {
+        super(dependeciesMap);
         this.workingDir = workingDir;
+        this.dependeciesMap = dependeciesMap;
+        this.initializeDataLayer();
+    }
+    initializeDataLayer() {
+        this.dataLayer = new DataLayer_1.DataLayer(linkfs_1.link(fs, ['/', this.workingDir]), this.dependeciesList.filter(key => key.writeAccess).map(key => key.path));
+    }
+    static prepare(workingDir, dependeciesMap, options) {
+        return new FileScope(workingDir, dependeciesMap, options);
     }
 }
-exports.FsDataLayer = FsDataLayer;
-//# sourceMappingURL=FsDataLayer.js.map
+exports.FileScope = FileScope;
+//# sourceMappingURL=FileScope.js.map

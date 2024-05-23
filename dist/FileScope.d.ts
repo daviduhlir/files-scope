@@ -1,5 +1,5 @@
-import { Dependency } from './Dependency';
-import { Scope, ScopeOptions } from './Scope';
+import { Dependency } from './Scope/Dependency';
+import { Scope, ScopeOptions } from './Scope/Scope';
 export declare class FileScope<T, K extends {
     [key: string]: Dependency;
 }> extends Scope<T, K> {

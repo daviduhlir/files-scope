@@ -1,5 +1,4 @@
-import { FsDataLayer } from '../DataLayer/FsDataLayer';
-import { DataLayerFsApi } from '../DataLayer/DataLayer';
+import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer';
 import { Dependency } from './Dependency';
 export declare type MutexKeyItem = {
     key: string;
@@ -16,7 +15,7 @@ export declare class Scope<T, K extends {
 }> {
     readonly dependeciesMap: K;
     protected options: ScopeOptions;
-    protected dataLayer: FsDataLayer;
+    protected dataLayer: DataLayer;
     protected dependeciesList: Dependency[];
     protected opened: boolean;
     constructor(dependeciesMap: K, options?: Partial<ScopeOptions>);

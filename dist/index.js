@@ -11,8 +11,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./Scope/Scope"), exports);
-__exportStar(require("./Scope/FileScope"), exports);
 __exportStar(require("./Scope/Dependency"), exports);
 __exportStar(require("./DataLayer/DataLayer"), exports);
-__exportStar(require("./DataLayer/FsDataLayer"), exports);
+__exportStar(require("./FileScope"), exports);
 //# sourceMappingURL=index.js.map
