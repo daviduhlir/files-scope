@@ -12,10 +12,10 @@ export class FileScope<T> extends Scope<T> {
   /**
    * Initialize data layer
    */
-  protected beforeOpen() {
-    this.dataLayer = new DataLayer(
+  protected createDatalayer(dependecies: Dependency[]): DataLayer {
+    return new DataLayer(
       link(fs, ['/', this.workingDir]),
-      this.dependeciesList.filter(key => key.writeAccess).map(key => key.path),
+      dependecies.filter(key => key.writeAccess).map(key => key.path),
     )
   }
 

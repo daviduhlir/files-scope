@@ -29,8 +29,8 @@ class FileScope extends Scope_1.Scope {
         super(options);
         this.workingDir = workingDir;
     }
-    beforeOpen() {
-        this.dataLayer = new DataLayer_1.DataLayer(linkfs_1.link(fs, ['/', this.workingDir]), this.dependeciesList.filter(key => key.writeAccess).map(key => key.path));
+    createDatalayer(dependecies) {
+        return new DataLayer_1.DataLayer(linkfs_1.link(fs, ['/', this.workingDir]), dependecies.filter(key => key.writeAccess).map(key => key.path));
     }
     static prepare(workingDir, options) {
         return new FileScope(workingDir, options);

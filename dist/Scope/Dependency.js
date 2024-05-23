@@ -27,16 +27,19 @@ class Dependency {
     constructor(path, writeAccess) {
         this.path = path;
         this.writeAccess = writeAccess;
-        this.scope = null;
-        this[_a] = (scope) => {
-            this.scope = scope;
+        this.dataLayer = null;
+        this[_a] = (dataLayer) => {
+            if (this.dataLayer) {
+                throw new Error('Dependency can not be used multiple times in scope.');
+            }
+            this.dataLayer = dataLayer;
         };
     }
     getFsProxy() {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
                 return (...args) => {
-                    return this.scope.fs.promises[propKey.toString()].apply(this, [this.path, ...args]);
+                    return this.dataLayer.fs.promises[propKey.toString()].apply(this, [this.path, ...args]);
                 };
             },
         });
@@ -72,7 +75,7 @@ class DependencyFolder extends Dependency {
                 return (...args) => {
                     const requestedPath = args.shift();
                     const callPath = path.resolve(this.path, this.relativizePath(requestedPath));
-                    return this.scope.fs.promises[propKey.toString()].apply(this, [callPath, ...args]);
+                    return this.dataLayer.fs.promises[propKey.toString()].apply(this, [callPath, ...args]);
                 };
             },
         });

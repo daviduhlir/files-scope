@@ -12,12 +12,8 @@ export interface ScopeOptions {
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope<T> {
     protected options: ScopeOptions;
-    protected dataLayer: DataLayer;
-    protected dependeciesList: Dependency[];
-    protected opened: boolean;
     constructor(options?: Partial<ScopeOptions>);
-    protected beforeOpen(): void;
-    get fs(): DataLayerFsApi;
+    protected createDatalayer(dependecies: Dependency[]): DataLayer;
     static prepare(workingDir: string, options?: Partial<ScopeOptions>): Scope<unknown>;
     open<K extends {
         [key: string]: Dependency;

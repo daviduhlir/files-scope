@@ -19,7 +19,6 @@ exports.DEFAULT_SCOPE_OPTIONS = {
 class Scope {
     constructor(options) {
         this.options = exports.DEFAULT_SCOPE_OPTIONS;
-        this.opened = false;
         if (options) {
             this.options = Object.assign(Object.assign({}, this.options), options);
         }
@@ -27,37 +26,29 @@ class Scope {
             throw new Error('Mutex prefix key must be at least 1 character');
         }
     }
-    beforeOpen() {
-    }
-    get fs() {
-        if (!this.opened) {
-            throw new Error('Can not access scope fs, scope is not opened');
-        }
-        return this.dataLayer.fs;
+    createDatalayer(dependecies) {
+        return null;
     }
     static prepare(workingDir, options) {
         return new Scope(options);
     }
     open(dependeciesMap, handler) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
-            this.beforeOpen();
-            this.opened = true;
-            this.dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](this));
-            return Scope.lockScope(this.dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
+            const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
+            const dataLayer = this.createDatalayer(dependeciesList);
+            dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
+            return Scope.lockScope(dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                 let result;
                 try {
-                    result = yield handler(this.dataLayer.fs, dependeciesMap);
+                    result = yield handler(dataLayer.fs, dependeciesMap);
                 }
                 catch (e) {
                     if (this.options.commitIfFail) {
-                        yield this.dataLayer.commit();
-                        this.opened = false;
+                        yield dataLayer.commit();
                     }
                     throw e;
                 }
-                yield this.dataLayer.commit();
-                this.opened = false;
+                yield dataLayer.commit();
                 return result;
             }), this.options.maxLockingTime);
         });

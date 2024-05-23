@@ -1,23 +1,26 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
 import * as path from 'path'
-import { Scope } from './Scope'
+import { DataLayer } from '../DataLayer/DataLayer'
 
 /**
  * Dependency representation with own fs api
  */
 export const dependencyFsInjector = Symbol()
 export class Dependency {
-  protected scope: Scope<any> = null
+  protected dataLayer: DataLayer = null
   constructor(readonly path: string, readonly writeAccess?: boolean) {}
-  [dependencyFsInjector] = (scope: Scope<any>) => {
-    this.scope = scope
+  [dependencyFsInjector] = (dataLayer: DataLayer) => {
+    if (this.dataLayer) {
+      throw new Error('Dependency can not be used multiple times in scope.')
+    }
+    this.dataLayer = dataLayer
   }
 
   protected getFsProxy() {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         return (...args) => {
-          return this.scope.fs.promises[propKey.toString()].apply(this, [this.path, ...args])
+          return this.dataLayer.fs.promises[propKey.toString()].apply(this, [this.path, ...args])
         }
       },
     })
@@ -62,7 +65,7 @@ export class DependencyFolder extends Dependency {
         return (...args) => {
           const requestedPath = args.shift()
           const callPath = path.resolve(this.path, this.relativizePath(requestedPath))
-          return this.scope.fs.promises[propKey.toString()].apply(this, [callPath, ...args])
+          return this.dataLayer.fs.promises[propKey.toString()].apply(this, [callPath, ...args])
         }
       },
     })

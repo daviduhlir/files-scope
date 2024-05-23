@@ -136,4 +136,21 @@ describe('Basic scope tests', function() {
       await dependecies.a.fs.writeFile('Hello')
     })
   })
+
+  it('Open multiple times', async function() {
+    const scope = FileScope.prepare('./temp')
+
+    await scope.open({
+      a: Dependency.writeFileAccess('/dir/file.txt'),
+    }, async (fs, dependecies) => {
+      await dependecies.a.fs.writeFile('Hello')
+    })
+
+    await scope.open({
+      a: Dependency.writeFileAccess('/dir/file.txt'),
+    }, async (fs, dependecies) => {
+      await dependecies.a.fs.writeFile('Hello')
+    })
+
+  })
 })

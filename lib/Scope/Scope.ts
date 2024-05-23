@@ -20,9 +20,6 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
 
 export class Scope<T> {
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
-  protected dataLayer: DataLayer
-  protected dependeciesList: Dependency[]
-  protected opened: boolean = false
 
   constructor(options?: Partial<ScopeOptions>) {
     if (options) {
@@ -39,18 +36,9 @@ export class Scope<T> {
   /**
    * Initialize scope
    */
-  protected beforeOpen() {
+  protected createDatalayer(dependecies: Dependency[]): DataLayer {
     // use this to preapre fs
-  }
-
-  /**
-   * Get scope fs
-   */
-  public get fs() {
-    if (!this.opened) {
-      throw new Error('Can not access scope fs, scope is not opened')
-    }
-    return this.dataLayer.fs
+    return null
   }
 
   /**
@@ -64,33 +52,30 @@ export class Scope<T> {
    * Open scope with dependecies
    */
   async open<K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
-    this.dependeciesList = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
+    const dependeciesList = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
 
     // call before open to preapre fs, etc...
-    this.beforeOpen()
+    const dataLayer = this.createDatalayer(dependeciesList)
 
-    this.opened = true
     // inject fs to dependecies
-    this.dependeciesList.forEach(dependency => dependency[dependencyFsInjector](this))
+    dependeciesList.forEach(dependency => dependency[dependencyFsInjector](dataLayer))
 
     // lock access to group
     return Scope.lockScope(
-      this.dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
+      dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
       dependeciesMap,
       async () => {
         // do the stuff in scope
         let result
         try {
-          result = await handler(this.dataLayer.fs, dependeciesMap)
+          result = await handler(dataLayer.fs, dependeciesMap)
         } catch (e) {
           if (this.options.commitIfFail) {
-            await this.dataLayer.commit()
-            this.opened = false
+            await dataLayer.commit()
           }
           throw e
         }
-        await this.dataLayer.commit()
-        this.opened = false
+        await dataLayer.commit()
         return result
       },
       this.options.maxLockingTime,
