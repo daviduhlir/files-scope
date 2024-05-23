@@ -1,6 +1,6 @@
 {
   "name": "@david.uhlir/files-scope",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Safe files scope with mutexes for node.js apllications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
