@@ -84,7 +84,7 @@ class DataLayer {
     commit(ignoreErrors) {
         return __awaiter(this, void 0, void 0, function* () {
             const dumped = this.dump();
-            for (const unlinkedPath in dumped.unlinkedPaths) {
+            for (const unlinkedPath of dumped.unlinkedPaths) {
                 try {
                     const stat = (yield util_1.promisify(this.sourceFs.stat)(unlinkedPath));
                     if (stat.isDirectory()) {
@@ -190,6 +190,9 @@ class DataLayer {
                     this.checkWriteAllowed(args[0]);
                     this.unlinkedPaths.push(args[0]);
                     try {
+                        if (method === 'unlink') {
+                            return yield this.volumeFs.promises.unlink.apply(this, args);
+                        }
                         return this.volumeFs.promises[method].apply(this, args);
                     }
                     catch (e) { }

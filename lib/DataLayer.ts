@@ -94,7 +94,7 @@ export class DataLayer {
   async commit(ignoreErrors?: boolean) {
     const dumped = this.dump()
 
-    for (const unlinkedPath in dumped.unlinkedPaths) {
+    for (const unlinkedPath of dumped.unlinkedPaths) {
       try {
         const stat = (await promisify(this.sourceFs.stat)(unlinkedPath)) as Stats
         if (stat.isDirectory()) {
@@ -199,6 +199,10 @@ export class DataLayer {
         this.checkWriteAllowed(args[0])
         this.unlinkedPaths.push(args[0])
         try {
+          // TODO why is this not working as [method] ???
+          if (method === 'unlink') {
+            return await this.volumeFs.promises.unlink.apply(this, args)
+          }
           return this.volumeFs.promises[method].apply(this, args)
         } catch (e) {}
         break

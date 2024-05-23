@@ -3,7 +3,7 @@ import { FileScope } from '../dist'
 import { delay } from './utils'
 
 /**
- * Simple locks test
+ * Simple scopes locks test
  */
 describe('Basic scope tests', function() {
   it('Single access', async function() {
