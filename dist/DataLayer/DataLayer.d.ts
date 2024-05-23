@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { IFs } from 'memfs';
 import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types';
-import { DataLayerCallbackApi, DataLayerPromiseApi } from './interfaces';
+import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces';
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
     unsafeFullFs: FsPromisesApi;
 }

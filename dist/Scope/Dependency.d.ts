@@ -1,12 +1,12 @@
-import { DataLayerFsApi } from './DataLayer';
-import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from './interfaces';
+import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces';
+import { Scope } from './Scope';
 export declare const dependencyFsInjector: unique symbol;
 export declare class Dependency {
     readonly path: string;
     readonly writeAccess?: boolean;
-    protected _fs: DataLayerFsApi;
+    protected scope: Scope<any, any>;
     constructor(path: string, writeAccess?: boolean);
-    [dependencyFsInjector]: (fs: DataLayerFsApi) => void;
+    [dependencyFsInjector]: (scope: Scope<any, any>) => void;
     protected getFsProxy(): any;
     static writeFileAccess(filePath: string): DependencyFile;
     static readFileAccess(filePath: string): DependencyFile;

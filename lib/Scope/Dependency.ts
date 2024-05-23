@@ -1,26 +1,23 @@
-import { IFs } from 'memfs'
-import { DataLayerFsApi } from './DataLayer'
-import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from './interfaces'
-import { link } from 'linkfs'
-import { promisify } from 'util'
+import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
 import * as path from 'path'
+import { Scope } from './Scope'
 
 /**
  * Dependency representation with own fs api
  */
 export const dependencyFsInjector = Symbol()
 export class Dependency {
-  protected _fs: DataLayerFsApi = null
+  protected scope: Scope<any, any> = null
   constructor(readonly path: string, readonly writeAccess?: boolean) {}
-  [dependencyFsInjector] = (fs: DataLayerFsApi) => {
-    this._fs = fs
+  [dependencyFsInjector] = (scope: Scope<any, any>) => {
+    this.scope = scope
   }
 
   protected getFsProxy() {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         return (...args) => {
-          return this._fs.promises[propKey.toString()].apply(this, [this.path, ...args])
+          return this.scope.fs.promises[propKey.toString()].apply(this, [this.path, ...args])
         }
       },
     })
@@ -65,7 +62,7 @@ export class DependencyFolder extends Dependency {
         return (...args) => {
           const requestedPath = args.shift()
           const callPath = path.resolve(this.path, this.relativizePath(requestedPath))
-          return this._fs.promises[propKey.toString()].apply(this, [callPath, ...args])
+          return this.scope.fs.promises[propKey.toString()].apply(this, [callPath, ...args])
         }
       },
     })

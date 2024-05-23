@@ -1,1 +1,0 @@
-{"version":3,"file":"FsDataLayer.js","sourceRoot":"","sources":["../lib/FsDataLayer.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;;;;AAAA,uCAAwB;AACxB,mCAA6B;AAC7B,2CAAuC;AAKvC,MAAa,WAAY,SAAQ,qBAAS;IACxC,YAAqB,UAAkB,EAAE,iBAA4B;QACnE,KAAK,CAAC,aAAI,CAAC,EAAE,EAAE,CAAC,GAAG,EAAE,UAAU,CAAC,CAAC,EAAE,iBAAiB,CAAC,CAAA;QADlC,eAAU,GAAV,UAAU,CAAQ;IAEvC,CAAC;CACF;AAJD,kCAIC"}

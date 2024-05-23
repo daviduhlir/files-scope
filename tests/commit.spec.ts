@@ -1,7 +1,6 @@
 import { assert } from 'chai'
-import { FileScope } from '../dist'
+import { FileScope, Dependency } from '../dist'
 import fs from 'fs'
-import { Dependency } from '../dist/Dependency'
 
 /**
  * Commit tests

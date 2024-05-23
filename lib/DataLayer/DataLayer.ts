@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import * as path from 'path'
 import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
-import { DataLayerCallbackApi, DataLayerPromiseApi } from './interfaces'
+import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi

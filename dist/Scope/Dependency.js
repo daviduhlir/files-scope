@@ -27,16 +27,16 @@ class Dependency {
     constructor(path, writeAccess) {
         this.path = path;
         this.writeAccess = writeAccess;
-        this._fs = null;
-        this[_a] = (fs) => {
-            this._fs = fs;
+        this.scope = null;
+        this[_a] = (scope) => {
+            this.scope = scope;
         };
     }
     getFsProxy() {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
                 return (...args) => {
-                    return this._fs.promises[propKey.toString()].apply(this, [this.path, ...args]);
+                    return this.scope.fs.promises[propKey.toString()].apply(this, [this.path, ...args]);
                 };
             },
         });
@@ -72,7 +72,7 @@ class DependencyFolder extends Dependency {
                 return (...args) => {
                     const requestedPath = args.shift();
                     const callPath = path.resolve(this.path, this.relativizePath(requestedPath));
-                    return this._fs.promises[propKey.toString()].apply(this, [callPath, ...args]);
+                    return this.scope.fs.promises[propKey.toString()].apply(this, [callPath, ...args]);
                 };
             },
         });

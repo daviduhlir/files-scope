@@ -1,7 +1,6 @@
 import { assert } from 'chai'
-import { FileScope } from '../dist'
+import { FileScope, Dependency } from '../dist'
 import { delay } from './utils'
-import { Dependency } from '../dist/Dependency'
 
 /**
  * Simple scopes locks test

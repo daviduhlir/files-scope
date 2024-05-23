@@ -10,7 +10,9 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./DataLayer"), exports);
-__exportStar(require("./FileScope"), exports);
-__exportStar(require("./FsDataLayer"), exports);
+__exportStar(require("./Scope/Scope"), exports);
+__exportStar(require("./Scope/FileScope"), exports);
+__exportStar(require("./Scope/Dependency"), exports);
+__exportStar(require("./DataLayer/DataLayer"), exports);
+__exportStar(require("./DataLayer/FsDataLayer"), exports);
 //# sourceMappingURL=index.js.map
