@@ -17,6 +17,6 @@ export declare class DependencyFile extends Dependency {
     get fs(): DataLayerPromiseSingleFileApi;
 }
 export declare class DependencyFolder extends Dependency {
-    protected relativizePath(inputPath: string): string;
+    relativizePath(requestedPath: any): string;
     get fs(): DataLayerPromiseApi;
 }

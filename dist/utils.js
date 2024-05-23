@@ -19,26 +19,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FileScope = void 0;
-const fs = __importStar(require("fs"));
-const DataLayer_1 = require("./DataLayer/DataLayer");
-const Scope_1 = require("./Scope/Scope");
-const linkfs_1 = require("linkfs");
-const utils_1 = require("./utils");
-class FileScope extends Scope_1.Scope {
-    constructor(workingDir, options) {
-        super(options);
-        this.workingDir = workingDir;
-    }
-    subScope(subPath) {
-        return FileScope.prepare(utils_1.createSubpath(this.workingDir, subPath));
-    }
-    createDatalayer(dependecies) {
-        return new DataLayer_1.DataLayer(linkfs_1.link(fs, ['/', this.workingDir]), dependecies.filter(key => key.writeAccess).map(key => key.path));
-    }
-    static prepare(workingDir, options) {
-        return new FileScope(workingDir, options);
-    }
+exports.createSubpath = exports.makeRelativePath = void 0;
+const path = __importStar(require("path"));
+function makeRelativePath(inputPath) {
+    return inputPath.startsWith('/') ? `.${inputPath}` : inputPath;
 }
-exports.FileScope = FileScope;
-//# sourceMappingURL=FileScope.js.map
+exports.makeRelativePath = makeRelativePath;
+function createSubpath(parentPath, subpath) {
+    return path.resolve(parentPath, makeRelativePath(subpath));
+}
+exports.createSubpath = createSubpath;
+//# sourceMappingURL=utils.js.map
