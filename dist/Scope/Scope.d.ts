@@ -13,6 +13,7 @@ export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {
     protected options: ScopeOptions;
     constructor(options?: Partial<ScopeOptions>);
+    subScope(subPath: string): Scope;
     protected createDatalayer(dependecies: Dependency[]): DataLayer;
     open<T, K extends {
         [key: string]: Dependency;

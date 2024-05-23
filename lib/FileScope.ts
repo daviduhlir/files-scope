@@ -11,7 +11,7 @@ export class FileScope extends Scope {
   }
 
   public subScope(subPath: string) {
-    return FileScope.prepare(createSubpath(this.workingDir, subPath))
+    return FileScope.prepare(createSubpath(this.workingDir, subPath), this.options)
   }
 
   /**

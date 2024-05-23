@@ -26,6 +26,9 @@ class Scope {
             throw new Error('Mutex prefix key must be at least 1 character');
         }
     }
+    subScope(subPath) {
+        return new Scope(this.options);
+    }
     createDatalayer(dependecies) {
         return null;
     }

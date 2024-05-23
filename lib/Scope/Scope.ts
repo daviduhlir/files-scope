@@ -34,6 +34,13 @@ export class Scope {
   }
 
   /**
+   * Get subscope
+   */
+  public subScope(subPath: string) {
+    return new Scope(this.options)
+  }
+
+  /**
    * Initialize scope
    */
   protected createDatalayer(dependecies: Dependency[]): DataLayer {
