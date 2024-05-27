@@ -9,6 +9,8 @@
     "prettier-check": "prettier-check --config .prettierrc.json 'lib/**/*.ts'",
     "prettier-format": "prettier --config .prettierrc.json 'lib/**/*.ts' --write",
     "test": "npm run build && npm run prettier-check && ts-mocha --timeout 10000 --type-check -p ./tsconfig.json tests/**/*.spec.ts",
+    "build:release": "rimraf ./dist && tsc --p tsconfig.release.json",
+    "test:release": "npm run build && npm run prettier-check && ts-mocha --timeout 10000 --type-check -p ./tsconfig.json tests/**/*.spec.ts",
     "release": "./scripts/release.sh"
   },
   "repository": {
@@ -18,7 +20,7 @@
   "author": "David Uhlíř",
   "license": "ISC",
   "dependencies": {
-    "@david.uhlir/mutex": "1.1.31",
+    "@david.uhlir/mutex": "1.1.32",
     "linkfs": "^2.1.0",
     "memfs": "^4.9.2"
   },
