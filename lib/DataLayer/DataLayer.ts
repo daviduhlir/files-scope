@@ -158,21 +158,21 @@ export class DataLayer {
         }
         return false
       case 'directoryExists':
+        try {
+          if ((await this.volumeFs.promises.stat(args[0])).isDirectory()) {
+            return true
+          }
+        } catch (e) {
           try {
-            if ((await this.volumeFs.promises.stat(args[0])).isDirectory()) {
+            if (this.checkIsUnlinked(args[0] as string)) {
+              throw new Error(`No such directory on path ${args[0]}`)
+            }
+            if ((await promisify(this.sourceFs.stat).apply(args[0])).isDirectory()) {
               return true
             }
-          } catch (e) {
-            try {
-              if (this.checkIsUnlinked(args[0] as string)) {
-                throw new Error(`No such directory on path ${args[0]}`)
-              }
-              if ((await promisify(this.sourceFs.stat).apply(args[0])).isDirectory()) {
-                return true
-              }
-            } catch (e) {}
-          }
-          return false
+          } catch (e) {}
+        }
+        return false
       case 'readFile':
       case 'lstat':
       case 'stat':

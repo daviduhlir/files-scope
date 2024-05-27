@@ -31,11 +31,7 @@ export interface DataLayerCallbackApi {
     options: ({ encoding?: BufferEncoding | undefined | null; flag?: string | undefined } & Abortable) | undefined | null,
     callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void,
   ): any
-  readFile(
-    path: string,
-    options: 'utf-8',
-    callback: (err: NodeJS.ErrnoException | null, data: string) => void,
-  ): any
+  readFile(path: string, options: 'utf-8', callback: (err: NodeJS.ErrnoException | null, data: string) => void): any
   rename(oldPath: string, newPath: string, callback: NoParamCallback): void
   rmdir(path: string, callback: NoParamCallback): any
   rmdir(path: string, options: RmDirOptions, callback: NoParamCallback): any
@@ -65,9 +61,7 @@ export interface DataLayerPromiseSingleFileApi {
   readFile(
     options: ({ encoding?: BufferEncoding | undefined | null; flag?: string | undefined } & Abortable) | undefined | null,
   ): Promise<string | Buffer>
-  readFile(
-    options: 'utf-8',
-  ): Promise<string>
+  readFile(options: 'utf-8'): Promise<string>
   rename(newPath: string): Promise<void>
   stat(): Promise<Stats>
   stat(options: (StatOptions & { bigint?: false | undefined }) | undefined): Promise<Stats>
@@ -104,10 +98,7 @@ export interface DataLayerPromiseApi {
     path: string,
     options: ({ encoding?: BufferEncoding | undefined | null; flag?: string | undefined } & Abortable) | undefined | null,
   ): Promise<string | Buffer>
-  readFile(
-    path: string,
-    options: 'utf-8',
-  ): Promise<string>
+  readFile(path: string, options: 'utf-8'): Promise<string>
   rename(oldPath: string, newPath: string): Promise<void>
   rmdir(path: string): Promise<void>
   rmdir(path: string, options: RmDirOptions): Promise<void>
