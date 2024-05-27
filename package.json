@@ -10,7 +10,7 @@
     "prettier-format": "prettier --config .prettierrc.json 'lib/**/*.ts' --write",
     "test": "npm run build && npm run prettier-check && ts-mocha --timeout 10000 --type-check -p ./tsconfig.json tests/**/*.spec.ts",
     "build:release": "rimraf ./dist && tsc --p tsconfig.release.json",
-    "test:release": "npm run build && npm run prettier-check && ts-mocha --timeout 10000 --type-check -p ./tsconfig.json tests/**/*.spec.ts",
+    "test:release": "npm run build:release && npm run prettier-check && ts-mocha --timeout 10000 --type-check -p ./tsconfig.json tests/**/*.spec.ts",
     "release": "./scripts/release.sh"
   },
   "repository": {

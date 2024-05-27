@@ -33,3 +33,4 @@ class FileScope extends Scope_1.Scope {
     }
 }
 exports.FileScope = FileScope;
+//# sourceMappingURL=FileScope.js.map
