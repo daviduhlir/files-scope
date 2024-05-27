@@ -36,6 +36,7 @@ export interface DataLayerCallbackApi {
         encoding?: BufferEncoding | undefined | null;
         flag?: string | undefined;
     } & Abortable) | undefined | null, callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void): any;
+    readFile(path: string, options: 'utf-8', callback: (err: NodeJS.ErrnoException | null, data: string) => void): any;
     rename(oldPath: string, newPath: string, callback: NoParamCallback): void;
     rmdir(path: string, callback: NoParamCallback): any;
     rmdir(path: string, options: RmDirOptions, callback: NoParamCallback): any;
@@ -48,6 +49,8 @@ export interface DataLayerCallbackApi {
     unlink(path: string, callback: NoParamCallback): void;
     writeFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
     writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
+    fileExists(path: string, callback: (err: NodeJS.ErrnoException | null, data: boolean) => void): any;
+    directoryExists(path: string, callback: (err: NodeJS.ErrnoException | null, data: boolean) => void): any;
 }
 export interface DataLayerPromiseSingleFileApi {
     access(mode: number | undefined): Promise<void>;
@@ -61,6 +64,7 @@ export interface DataLayerPromiseSingleFileApi {
         encoding?: BufferEncoding | undefined | null;
         flag?: string | undefined;
     } & Abortable) | undefined | null): Promise<string | Buffer>;
+    readFile(options: 'utf-8'): Promise<string>;
     rename(newPath: string): Promise<void>;
     stat(): Promise<Stats>;
     stat(options: (StatOptions & {
@@ -106,6 +110,7 @@ export interface DataLayerPromiseApi {
         encoding?: BufferEncoding | undefined | null;
         flag?: string | undefined;
     } & Abortable) | undefined | null): Promise<string | Buffer>;
+    readFile(path: string, options: 'utf-8'): Promise<string>;
     rename(oldPath: string, newPath: string): Promise<void>;
     rmdir(path: string): Promise<void>;
     rmdir(path: string, options: RmDirOptions): Promise<void>;
@@ -118,4 +123,6 @@ export interface DataLayerPromiseApi {
     unlink(path: string): Promise<void>;
     writeFile(path: string, data: string | Uint8Array): Promise<void>;
     writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
+    fileExists(path: string): Promise<boolean>;
+    directoryExists(path: string): Promise<boolean>;
 }

@@ -5,6 +5,7 @@ import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
+import { makeRelativePath } from '../utils'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -156,6 +157,22 @@ export class DataLayer {
           } catch (e) {}
         }
         return false
+      case 'directoryExists':
+          try {
+            if ((await this.volumeFs.promises.stat(args[0])).isDirectory()) {
+              return true
+            }
+          } catch (e) {
+            try {
+              if (this.checkIsUnlinked(args[0] as string)) {
+                throw new Error(`No such directory on path ${args[0]}`)
+              }
+              if ((await promisify(this.sourceFs.stat).apply(args[0])).isDirectory()) {
+                return true
+              }
+            } catch (e) {}
+          }
+          return false
       case 'readFile':
       case 'lstat':
       case 'stat':
@@ -305,6 +322,7 @@ export class DataLayer {
    * Check if paths is in unlinked array
    */
   protected checkIsUnlinked(fsPath: string) {
-    return this.unlinkedPaths.find(unlinked => fsPath.startsWith(unlinked))
+    const fsPathRelative = makeRelativePath(fsPath)
+    return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(makeRelativePath(unlinked)))
   }
 }

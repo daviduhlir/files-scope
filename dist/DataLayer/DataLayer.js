@@ -33,6 +33,7 @@ const memfs_1 = require("memfs");
 const util_1 = require("util");
 const path = __importStar(require("path"));
 const constants_1 = require("constants");
+const utils_1 = require("../utils");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
         this.sourceFs = sourceFs;
@@ -144,6 +145,24 @@ class DataLayer {
                             }
                             yield util_1.promisify(this.sourceFs.access).apply(args[0], constants_1.F_OK);
                             return true;
+                        }
+                        catch (e) { }
+                    }
+                    return false;
+                case 'directoryExists':
+                    try {
+                        if ((yield this.volumeFs.promises.stat(args[0])).isDirectory()) {
+                            return true;
+                        }
+                    }
+                    catch (e) {
+                        try {
+                            if (this.checkIsUnlinked(args[0])) {
+                                throw new Error(`No such directory on path ${args[0]}`);
+                            }
+                            if ((yield util_1.promisify(this.sourceFs.stat).apply(args[0])).isDirectory()) {
+                                return true;
+                            }
                         }
                         catch (e) { }
                     }
@@ -283,7 +302,8 @@ class DataLayer {
         return accumulator;
     }
     checkIsUnlinked(fsPath) {
-        return this.unlinkedPaths.find(unlinked => fsPath.startsWith(unlinked));
+        const fsPathRelative = utils_1.makeRelativePath(fsPath);
+        return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(utils_1.makeRelativePath(unlinked)));
     }
 }
 exports.DataLayer = DataLayer;
