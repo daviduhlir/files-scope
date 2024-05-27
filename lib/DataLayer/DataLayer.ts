@@ -4,6 +4,7 @@ import * as path from 'path'
 import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
+import { F_OK } from 'constants'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -141,9 +142,24 @@ export class DataLayer {
   protected async solveFsAction(method: string, args: any[]) {
     switch (method) {
       // read operations
+      case 'fileExists':
+        try {
+          await this.volumeFs.promises.access(args[0], F_OK)
+          return true
+        } catch (e) {
+          try {
+            if (this.checkIsUnlinked(args[0] as string)) {
+              throw new Error(`No such file on path ${args[0]}`)
+            }
+            await promisify(this.sourceFs.access).apply(args[0], F_OK)
+            return true
+          } catch (e) {}
+        }
+        return false
       case 'readFile':
       case 'lstat':
       case 'stat':
+      case 'access':
         try {
           return await this.volumeFs.promises[method].apply(this, args)
         } catch (e) {

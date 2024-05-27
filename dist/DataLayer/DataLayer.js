@@ -32,6 +32,7 @@ exports.DataLayer = void 0;
 const memfs_1 = require("memfs");
 const util_1 = require("util");
 const path = __importStar(require("path"));
+const constants_1 = require("constants");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
         this.sourceFs = sourceFs;
@@ -131,9 +132,26 @@ class DataLayer {
     solveFsAction(method, args) {
         return __awaiter(this, void 0, void 0, function* () {
             switch (method) {
+                case 'fileExists':
+                    try {
+                        yield this.volumeFs.promises.access(args[0], constants_1.F_OK);
+                        return true;
+                    }
+                    catch (e) {
+                        try {
+                            if (this.checkIsUnlinked(args[0])) {
+                                throw new Error(`No such file on path ${args[0]}`);
+                            }
+                            yield util_1.promisify(this.sourceFs.access).apply(args[0], constants_1.F_OK);
+                            return true;
+                        }
+                        catch (e) { }
+                    }
+                    return false;
                 case 'readFile':
                 case 'lstat':
                 case 'stat':
+                case 'access':
                     try {
                         return yield this.volumeFs.promises[method].apply(this, args);
                     }

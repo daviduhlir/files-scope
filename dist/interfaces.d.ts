@@ -2,6 +2,8 @@
 import { Dirent, MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, Stats, WriteFileOptions } from 'fs';
 import { Abortable } from 'events';
 export interface DataLayerCallbackApi {
+    access(path: string, mode: number | undefined, callback: NoParamCallback): void;
+    access(path: string, callback: NoParamCallback): void;
     appendFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
     appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
     copyFile(src: string, dest: string, callback: NoParamCallback): any;
@@ -48,6 +50,8 @@ export interface DataLayerCallbackApi {
     writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
 }
 export interface DataLayerPromiseSingleFileApi {
+    access(mode: number | undefined): Promise<void>;
+    access(): Promise<void>;
     appendFile(data: string | Uint8Array): Promise<void>;
     appendFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
     copyFile(dest: string): Promise<void>;
@@ -65,8 +69,11 @@ export interface DataLayerPromiseSingleFileApi {
     unlink(): Promise<void>;
     writeFile(data: string | Uint8Array): Promise<void>;
     writeFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
+    fileExists(): Promise<boolean>;
 }
 export interface DataLayerPromiseApi {
+    access(path: string, mode: number | undefined): Promise<void>;
+    access(path: string): Promise<void>;
     appendFile(path: string, data: string | Uint8Array): Promise<void>;
     appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
     copyFile(src: string, dest: string): Promise<void>;
@@ -91,7 +98,7 @@ export interface DataLayerPromiseApi {
         withFileTypes?: false | undefined;
     } | BufferEncoding | undefined | null): Promise<string[]>;
     readdir(path: string, options?: {
-        encoding: BufferEncoding | null;
+        encoding: BufferEncoding | null | undefined;
         withFileTypes: true;
     } | BufferEncoding | undefined | null): Promise<Dirent[]>;
     readFile(path: string): Promise<string | Buffer>;

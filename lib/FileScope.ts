@@ -6,20 +6,12 @@ import { link } from 'linkfs'
 import { createSubpath } from './utils'
 
 export class FileScope extends Scope {
-  constructor(readonly workingDir: string, options?: Partial<ScopeOptions>) {
-    super(options)
-  }
-
-  public subScope(subPath: string) {
-    return FileScope.prepare(createSubpath(this.workingDir, subPath), this.options)
-  }
-
   /**
    * Initialize data layer
    */
-  protected createDatalayer(dependecies: Dependency[]): DataLayer {
+  protected createDatalayer(parentDataLayer: DataLayer, dependecies: Dependency[]): DataLayer {
     return new DataLayer(
-      link(fs, ['/', this.workingDir]),
+      parentDataLayer ? parentDataLayer.fs : link(fs, ['/', this.workingDir]),
       dependecies.filter(key => key.writeAccess).map(key => key.path),
     )
   }

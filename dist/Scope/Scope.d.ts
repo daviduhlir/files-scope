@@ -11,10 +11,12 @@ export interface ScopeOptions {
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {
+    readonly workingDir: string;
+    protected stackStorage: import("../utils/AsyncLocalStorage").AsyncLocalStorageMock<DataLayer[]>;
     protected options: ScopeOptions;
-    constructor(options?: Partial<ScopeOptions>);
-    subScope(subPath: string): Scope;
-    protected createDatalayer(dependecies: Dependency[]): DataLayer;
+    constructor(workingDir: string, options?: Partial<ScopeOptions>);
+    static prepare(workingDir: string, options?: Partial<ScopeOptions>): Scope;
+    protected createDatalayer(parentDataLayer: DataLayer, dependecies: Dependency[]): DataLayer;
     open<T, K extends {
         [key: string]: Dependency;
     }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;

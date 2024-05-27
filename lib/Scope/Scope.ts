@@ -1,6 +1,8 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
+import { createSubpath } from '../utils'
+import AsyncLocalStorage from '../utils/AsyncLocalStorage'
 
 /**
  * Files scope, with mutexes implemented
@@ -19,9 +21,14 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
 }
 
 export class Scope {
+  /**
+   * storage of data for nested keys
+   */
+  protected stackStorage = new AsyncLocalStorage<DataLayer[]>()
+
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
 
-  constructor(options?: Partial<ScopeOptions>) {
+  constructor(readonly workingDir: string, options?: Partial<ScopeOptions>) {
     if (options) {
       this.options = {
         ...this.options,
@@ -34,16 +41,16 @@ export class Scope {
   }
 
   /**
-   * Get subscope
+   * Scope prepare factory
    */
-  public subScope(subPath: string) {
-    return new Scope(this.options)
+  static prepare(workingDir: string, options?: Partial<ScopeOptions>) {
+    return new Scope(workingDir, options)
   }
 
   /**
    * Initialize scope
    */
-  protected createDatalayer(dependecies: Dependency[]): DataLayer {
+  protected createDatalayer(parentDataLayer: DataLayer, dependecies: Dependency[]): DataLayer {
     // use this to preapre fs
     return null
   }
@@ -55,31 +62,37 @@ export class Scope {
     const dependeciesList = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
 
     // call before open to preapre fs, etc...
-    const dataLayer = this.createDatalayer(dependeciesList)
+    const stack = [...(this.stackStorage.getStore() || [])]
+    const parent = stack?.length ? stack[stack.length - 1] : undefined
+    const dataLayer = this.createDatalayer(parent, dependeciesList)
 
     // inject fs to dependecies
     dependeciesList.forEach(dependency => dependency[dependencyFsInjector](dataLayer))
 
     // lock access to group
-    return Scope.lockScope(
-      dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
-      dependeciesMap,
-      async () => {
-        // do the stuff in scope
-        let result
-        try {
-          result = await handler(dataLayer.fs, dependeciesMap)
-        } catch (e) {
-          if (this.options.commitIfFail) {
-            await dataLayer.commit()
+    const result = await this.stackStorage.run([...stack, dataLayer], async () =>
+      Scope.lockScope(
+        dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
+        dependeciesMap,
+        async () => {
+          // do the stuff in scope
+          let result
+          try {
+            result = await handler(dataLayer.fs, dependeciesMap)
+          } catch (e) {
+            if (this.options.commitIfFail) {
+              await dataLayer.commit()
+            }
+            throw e
           }
-          throw e
-        }
-        await dataLayer.commit()
-        return result
-      },
-      this.options.maxLockingTime,
+          await dataLayer.commit()
+          return result
+        },
+        this.options.maxLockingTime,
+      ),
     )
+
+    return result
   }
 
   /**

@@ -14,4 +14,5 @@ __exportStar(require("./Scope/Scope"), exports);
 __exportStar(require("./Scope/Dependency"), exports);
 __exportStar(require("./DataLayer/DataLayer"), exports);
 __exportStar(require("./FileScope"), exports);
+__exportStar(require("./interfaces"), exports);
 //# sourceMappingURL=index.js.map
