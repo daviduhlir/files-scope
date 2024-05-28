@@ -19,13 +19,31 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSubpath = exports.makeRelativePath = void 0;
+exports.isSubpath = exports.createSubpath = exports.makeAbsolutePath = exports.makeRelativePath = void 0;
 const path = __importStar(require("path"));
 function makeRelativePath(inputPath) {
     return inputPath.startsWith('/') ? `.${inputPath}` : inputPath;
 }
 exports.makeRelativePath = makeRelativePath;
+function makeAbsolutePath(inputPath) {
+    return inputPath.startsWith('./') ? `${inputPath.substring(1)}` : inputPath.startsWith('/') ? inputPath : `/${inputPath}`;
+}
+exports.makeAbsolutePath = makeAbsolutePath;
 function createSubpath(parentPath, subpath) {
     return path.resolve(parentPath, makeRelativePath(subpath));
 }
 exports.createSubpath = createSubpath;
+function isSubpath(testedPath, startsWith) {
+    const testedPathParts = testedPath.split('/').filter(Boolean);
+    const startsWithParts = startsWith.split('/').filter(Boolean);
+    if (testedPathParts.length < startsWithParts.length) {
+        return false;
+    }
+    for (let i = 0; i < startsWithParts.length; i++) {
+        if (testedPathParts[i] !== startsWithParts[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+exports.isSubpath = isSubpath;

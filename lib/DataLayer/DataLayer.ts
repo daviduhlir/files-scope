@@ -5,8 +5,9 @@ import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
-import { makeRelativePath } from '../utils'
+import { isSubpath, makeAbsolutePath } from '../utils'
 import { SUPPORTED_METHODS } from '../constants'
+import { promises as systemFs } from 'fs'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -14,6 +15,7 @@ export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
 export interface DataLayerFsApi extends DataLayerCallbackApi {
   promises: DataLayerPromisesFsApi
   unsafeFullFs: FsCallbackApi
+  addExternalPath: (path: string) => void
 }
 
 export interface FsNode {
@@ -31,8 +33,18 @@ export class DataLayer {
   protected volumeFs: IFs
   protected unlinkedPaths: string[] = []
 
+  // /Users/daviduhlir/Documents/Work/zenoo/hub-design-studio/node_modules/@zenoo/hub-design-studio-core/build/graphql/utils/index.less
+  protected externalPaths: string[] = []
+
   constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[]) {
     this.volumeFs = createFsFromVolume(this.volume)
+  }
+
+  /**
+   * Add read callback alias for subpath
+   */
+  addExternalPath(absolutePath: string) {
+    this.externalPaths.push(absolutePath)
   }
 
   /**
@@ -55,6 +67,8 @@ export class DataLayer {
           return this.promises
         } else if (stringPropKey === 'unsafeFullFs') {
           return this.fs
+        } else if (stringPropKey === 'addExternalPath') {
+          return (path: string) => this.addExternalPath(path)
         } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
           return (...args) => {
             const cb = args.pop()
@@ -148,6 +162,16 @@ export class DataLayer {
     switch (method) {
       // read operations
       case 'fileExists':
+        // resolve alias
+        if (this.isExternalPath(args[0])) {
+          try {
+            await systemFs.access(args[0], F_OK)
+            return true
+          } catch (e) {
+            return false
+          }
+        }
+
         try {
           await this.volumeFs.promises.access(args[0], F_OK)
           return true
@@ -162,10 +186,16 @@ export class DataLayer {
         }
         return false
       case 'directoryExists':
-        try {
-          if ((await this.volumeFs.promises.stat(args[0])).isDirectory()) {
-            return true
+        if (this.isExternalPath(args[0])) {
+          try {
+            return (await systemFs.stat(args[0])).isDirectory()
+          } catch (e) {
+            return false
           }
+        }
+
+        try {
+          return (await this.volumeFs.promises.stat(args[0])).isDirectory()
         } catch (e) {
           try {
             if (this.checkIsUnlinked(args[0] as string)) {
@@ -181,6 +211,10 @@ export class DataLayer {
       case 'lstat':
       case 'stat':
       case 'access':
+        if (this.isExternalPath(args[0])) {
+          return systemFs.readFile.apply(this, args)
+        }
+
         try {
           return await this.volumeFs.promises[method].apply(this, args)
         } catch (e) {
@@ -190,6 +224,10 @@ export class DataLayer {
           return promisify(this.sourceFs[method]).apply(this, args)
         }
       case 'readdir': {
+        if (this.isExternalPath(args[0])) {
+          return systemFs.readdir.apply(this, args)
+        }
+
         let memResult = []
         try {
           memResult = await this.volumeFs.promises.readdir.apply(this, args)
@@ -252,10 +290,17 @@ export class DataLayer {
   }
 
   /**
+   * Get absolute alias path, if match
+   */
+  protected isExternalPath(fsPath: string) {
+    return this.externalPaths.find(item => isSubpath(fsPath, item))
+  }
+
+  /**
    * Check if write is allowed by wroteAllowedPaths
    */
   protected checkWriteAllowed(fsPath: string) {
-    if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => fsPath.startsWith(allowedPath))) {
+    if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => isSubpath(fsPath, allowedPath))) {
       throw new Error(`Write to path ${fsPath} is not allowed in layer.`)
     }
   }
@@ -326,7 +371,7 @@ export class DataLayer {
    * Check if paths is in unlinked array
    */
   protected checkIsUnlinked(fsPath: string) {
-    const fsPathRelative = makeRelativePath(fsPath)
-    return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(makeRelativePath(unlinked)))
+    const fsPathRelative = makeAbsolutePath(fsPath)
+    return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(makeAbsolutePath(unlinked)))
   }
 }

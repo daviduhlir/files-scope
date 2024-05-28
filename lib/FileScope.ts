@@ -3,7 +3,6 @@ import { DataLayer } from './DataLayer/DataLayer'
 import { Dependency } from './Scope/Dependency'
 import { Scope, ScopeOptions } from './Scope/Scope'
 import { link } from 'linkfs'
-import { createSubpath } from './utils'
 
 export class FileScope extends Scope {
   /**

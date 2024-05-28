@@ -35,13 +35,18 @@ const path = __importStar(require("path"));
 const constants_1 = require("constants");
 const utils_1 = require("../utils");
 const constants_2 = require("../constants");
+const fs_1 = require("fs");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
         this.sourceFs = sourceFs;
         this.writeAllowedPaths = writeAllowedPaths;
         this.volume = new memfs_1.Volume();
         this.unlinkedPaths = [];
+        this.externalPaths = [];
         this.volumeFs = memfs_1.createFsFromVolume(this.volume);
+    }
+    addExternalPath(absolutePath) {
+        this.externalPaths.push(absolutePath);
     }
     reset() {
         this.volume = new memfs_1.Volume();
@@ -57,6 +62,9 @@ class DataLayer {
                 }
                 else if (stringPropKey === 'unsafeFullFs') {
                     return this.fs;
+                }
+                else if (stringPropKey === 'addExternalPath') {
+                    return (path) => this.addExternalPath(path);
                 }
                 else if (constants_2.SUPPORTED_METHODS.includes(stringPropKey)) {
                     return (...args) => {
@@ -139,6 +147,15 @@ class DataLayer {
         return __awaiter(this, void 0, void 0, function* () {
             switch (method) {
                 case 'fileExists':
+                    if (this.isExternalPath(args[0])) {
+                        try {
+                            yield fs_1.promises.access(args[0], constants_1.F_OK);
+                            return true;
+                        }
+                        catch (e) {
+                            return false;
+                        }
+                    }
                     try {
                         yield this.volumeFs.promises.access(args[0], constants_1.F_OK);
                         return true;
@@ -155,10 +172,16 @@ class DataLayer {
                     }
                     return false;
                 case 'directoryExists':
-                    try {
-                        if ((yield this.volumeFs.promises.stat(args[0])).isDirectory()) {
-                            return true;
+                    if (this.isExternalPath(args[0])) {
+                        try {
+                            return (yield fs_1.promises.stat(args[0])).isDirectory();
                         }
+                        catch (e) {
+                            return false;
+                        }
+                    }
+                    try {
+                        return (yield this.volumeFs.promises.stat(args[0])).isDirectory();
                     }
                     catch (e) {
                         try {
@@ -176,6 +199,9 @@ class DataLayer {
                 case 'lstat':
                 case 'stat':
                 case 'access':
+                    if (this.isExternalPath(args[0])) {
+                        return fs_1.promises.readFile.apply(this, args);
+                    }
                     try {
                         return yield this.volumeFs.promises[method].apply(this, args);
                     }
@@ -186,6 +212,9 @@ class DataLayer {
                         return util_1.promisify(this.sourceFs[method]).apply(this, args);
                     }
                 case 'readdir': {
+                    if (this.isExternalPath(args[0])) {
+                        return fs_1.promises.readdir.apply(this, args);
+                    }
                     let memResult = [];
                     try {
                         memResult = yield this.volumeFs.promises.readdir.apply(this, args);
@@ -247,8 +276,11 @@ class DataLayer {
             }
         });
     }
+    isExternalPath(fsPath) {
+        return this.externalPaths.find(item => utils_1.isSubpath(fsPath, item));
+    }
     checkWriteAllowed(fsPath) {
-        if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => fsPath.startsWith(allowedPath))) {
+        if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => utils_1.isSubpath(fsPath, allowedPath))) {
             throw new Error(`Write to path ${fsPath} is not allowed in layer.`);
         }
     }
@@ -307,8 +339,8 @@ class DataLayer {
         return accumulator;
     }
     checkIsUnlinked(fsPath) {
-        const fsPathRelative = utils_1.makeRelativePath(fsPath);
-        return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(utils_1.makeRelativePath(unlinked)));
+        const fsPathRelative = utils_1.makeAbsolutePath(fsPath);
+        return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(utils_1.makeAbsolutePath(unlinked)));
     }
 }
 exports.DataLayer = DataLayer;

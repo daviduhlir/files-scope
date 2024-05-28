@@ -8,6 +8,7 @@ export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
 export interface DataLayerFsApi extends DataLayerCallbackApi {
     promises: DataLayerPromisesFsApi;
     unsafeFullFs: FsCallbackApi;
+    addExternalPath: (path: string) => void;
 }
 export interface FsNode {
     [name: string]: FsNode | string | Buffer | null;
@@ -18,7 +19,9 @@ export declare class DataLayer {
     protected volume: import("memfs/lib/volume").Volume;
     protected volumeFs: IFs;
     protected unlinkedPaths: string[];
+    protected externalPaths: string[];
     constructor(sourceFs: IFs | DataLayerFsApi, writeAllowedPaths?: string[]);
+    addExternalPath(absolutePath: string): void;
     reset(): void;
     get fs(): DataLayerFsApi;
     get promises(): FsPromisesApi;
@@ -30,6 +33,7 @@ export declare class DataLayer {
     };
     commit(ignoreErrors?: boolean): Promise<void>;
     protected solveFsAction(method: string, args: any[]): Promise<any>;
+    protected isExternalPath(fsPath: string): string;
     protected checkWriteAllowed(fsPath: string): void;
     protected pathFromReaddirEntry(readdirEntry: any): string;
     protected sortedArrayFromReaddirResult(readdirResult: Map<string, any>): any[];
