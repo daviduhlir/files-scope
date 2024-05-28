@@ -13,11 +13,13 @@ export interface ScopeOptions {
   mutexPrefix: string // prefix of mutexes
   maxLockingTime?: number // mutex max locking time
   commitIfFail?: boolean // commit result in case handler throws error
+  onRootScopeDone?: () => void
 }
 
 export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   mutexPrefix: '#dataScope:',
   commitIfFail: false,
+  onRootScopeDone: undefined
 }
 
 export class Scope {
@@ -50,7 +52,7 @@ export class Scope {
   /**
    * Initialize scope
    */
-  protected createDatalayer(parentDataLayer: DataLayer, dependecies: Dependency[]): DataLayer {
+  protected createDatalayer(dependecies: Dependency[]): DataLayer {
     // use this to preapre fs
     return null
   }
@@ -64,7 +66,9 @@ export class Scope {
     // call before open to preapre fs, etc...
     const stack = [...(this.stackStorage.getStore() || [])]
     const parent = stack?.length ? stack[stack.length - 1] : undefined
-    const dataLayer = this.createDatalayer(parent, dependeciesList)
+
+    // data layer factory is just only for root scope
+    const dataLayer = parent ? new DataLayer(parent.fs, dependeciesList.filter(key => key.writeAccess).map(key => key.path)) : this.createDatalayer(dependeciesList)
 
     // inject fs to dependecies
     dependeciesList.forEach(dependency => dependency[dependencyFsInjector](dataLayer))
@@ -91,6 +95,10 @@ export class Scope {
         this.options.maxLockingTime,
       ),
     )
+
+    if (!parent && this.options.onRootScopeDone) {
+      this.options.onRootScopeDone()
+    }
 
     return result
   }

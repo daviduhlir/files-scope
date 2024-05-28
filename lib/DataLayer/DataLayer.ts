@@ -30,7 +30,7 @@ export class DataLayer {
   protected volumeFs: IFs
   protected unlinkedPaths: string[] = []
 
-  constructor(readonly sourceFs: IFs, readonly writeAllowedPaths?: string[]) {
+  constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[]) {
     this.volumeFs = createFsFromVolume(this.volume)
   }
 

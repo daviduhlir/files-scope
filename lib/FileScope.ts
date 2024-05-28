@@ -9,9 +9,9 @@ export class FileScope extends Scope {
   /**
    * Initialize data layer
    */
-  protected createDatalayer(parentDataLayer: DataLayer, dependecies: Dependency[]): DataLayer {
+  protected createDatalayer(dependecies: Dependency[]): DataLayer {
     return new DataLayer(
-      parentDataLayer ? parentDataLayer.fs : link(fs, ['/', this.workingDir]),
+      link(fs, ['/', this.workingDir]),
       dependecies.filter(key => key.writeAccess).map(key => key.path),
     )
   }
