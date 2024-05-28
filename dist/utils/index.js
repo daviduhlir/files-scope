@@ -29,4 +29,3 @@ function createSubpath(parentPath, subpath) {
     return path.resolve(parentPath, makeRelativePath(subpath));
 }
 exports.createSubpath = createSubpath;
-//# sourceMappingURL=index.js.map

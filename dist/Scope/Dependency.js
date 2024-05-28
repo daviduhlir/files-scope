@@ -70,4 +70,3 @@ class DependencyFolder extends Dependency {
     }
 }
 exports.DependencyFolder = DependencyFolder;
-//# sourceMappingURL=Dependency.js.map

@@ -93,4 +93,3 @@ class Scope {
     }
 }
 exports.Scope = Scope;
-//# sourceMappingURL=Scope.js.map
