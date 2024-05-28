@@ -34,6 +34,7 @@ const util_1 = require("util");
 const path = __importStar(require("path"));
 const constants_1 = require("constants");
 const utils_1 = require("../utils");
+const constants_2 = require("../constants");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
         this.sourceFs = sourceFs;
@@ -50,16 +51,20 @@ class DataLayer {
     get fs() {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
-                if (propKey === 'promises') {
+                const stringPropKey = propKey.toString();
+                if (stringPropKey === 'promises') {
                     return this.promises;
                 }
-                else if (propKey === 'unsafeFullFs') {
+                else if (stringPropKey === 'unsafeFullFs') {
                     return this.fs;
                 }
-                return (...args) => {
-                    const cb = args.pop();
-                    this.solveFsAction.apply(this, [propKey.toString(), args]).then((result, error) => cb(error, result));
-                };
+                else if (constants_2.SUPPORTED_METHODS.includes(stringPropKey)) {
+                    return (...args) => {
+                        const cb = args.pop();
+                        this.solveFsAction.apply(this, [stringPropKey, args]).then((result, error) => cb(error, result));
+                    };
+                }
+                return undefined;
             },
         });
     }
@@ -307,3 +312,4 @@ class DataLayer {
     }
 }
 exports.DataLayer = DataLayer;
+//# sourceMappingURL=DataLayer.js.map

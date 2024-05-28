@@ -3,6 +3,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyFolder = exports.DependencyFile = exports.Dependency = exports.dependencyFsInjector = void 0;
 const utils_1 = require("../utils");
+const constants_1 = require("../constants");
 exports.dependencyFsInjector = '__dependencyFsInjector__';
 class Dependency {
     constructor(path, writeAccess) {
@@ -19,9 +20,11 @@ class Dependency {
     getFsProxy() {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
-                return (...args) => {
-                    return this.dataLayer.fs.promises[propKey.toString()].apply(this, [this.path, ...args]);
-                };
+                const stringPropKey = propKey.toString();
+                if (constants_1.SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
+                    return (...args) => this.dataLayer.fs.promises[stringPropKey].apply(this, [this.path, ...args]);
+                }
+                return undefined;
             },
         });
     }
@@ -53,13 +56,18 @@ class DependencyFolder extends Dependency {
     get fs() {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
-                return (...args) => {
-                    const requestedPath = args.shift();
-                    const callPath = utils_1.createSubpath(this.path, requestedPath);
-                    return this.dataLayer.fs.promises[propKey.toString()].apply(this, [callPath, ...args]);
-                };
+                const stringPropKey = propKey.toString();
+                if (constants_1.SUPPORTED_METHODS.includes(stringPropKey)) {
+                    return (...args) => {
+                        const requestedPath = args.shift();
+                        const callPath = utils_1.createSubpath(this.path, requestedPath);
+                        return this.dataLayer.fs.promises[stringPropKey].apply(this, [callPath, ...args]);
+                    };
+                }
+                return undefined;
             },
         });
     }
 }
 exports.DependencyFolder = DependencyFolder;
+//# sourceMappingURL=Dependency.js.map

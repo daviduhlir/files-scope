@@ -6,6 +6,7 @@ import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
 import { makeRelativePath } from '../utils'
+import { SUPPORTED_METHODS } from '../constants'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -49,15 +50,18 @@ export class DataLayer {
   get fs(): DataLayerFsApi {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
-        if (propKey === 'promises') {
+        const stringPropKey = propKey.toString()
+        if (stringPropKey === 'promises') {
           return this.promises
-        } else if (propKey === 'unsafeFullFs') {
+        } else if (stringPropKey === 'unsafeFullFs') {
           return this.fs
+        } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
+          return (...args) => {
+            const cb = args.pop()
+            this.solveFsAction.apply(this, [stringPropKey, args]).then((result, error) => cb(error, result))
+          }
         }
-        return (...args) => {
-          const cb = args.pop()
-          this.solveFsAction.apply(this, [propKey.toString(), args]).then((result, error) => cb(error, result))
-        }
+        return undefined
       },
     })
   }

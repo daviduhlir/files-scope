@@ -1,6 +1,7 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
 import { DataLayer } from '../DataLayer/DataLayer'
 import { createSubpath } from '../utils'
+import { SUPPORTED_METHODS, SUPPORTED_FILE_METHODS } from '../constants'
 
 /**
  * Dependency representation with own fs api
@@ -19,9 +20,11 @@ export class Dependency {
   protected getFsProxy() {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
-        return (...args) => {
-          return this.dataLayer.fs.promises[propKey.toString()].apply(this, [this.path, ...args])
+        const stringPropKey = propKey.toString()
+        if (SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
+          return (...args) => this.dataLayer.fs.promises[stringPropKey].apply(this, [this.path, ...args])
         }
+        return undefined
       },
     })
   }
@@ -62,11 +65,15 @@ export class DependencyFolder extends Dependency {
   get fs(): DataLayerPromiseApi {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
-        return (...args) => {
-          const requestedPath = args.shift()
-          const callPath = createSubpath(this.path, requestedPath)
-          return this.dataLayer.fs.promises[propKey.toString()].apply(this, [callPath, ...args])
+        const stringPropKey = propKey.toString()
+        if (SUPPORTED_METHODS.includes(stringPropKey)) {
+          return (...args) => {
+            const requestedPath = args.shift()
+            const callPath = createSubpath(this.path, requestedPath)
+            return this.dataLayer.fs.promises[stringPropKey].apply(this, [callPath, ...args])
+          }
         }
+        return undefined
       },
     })
   }
