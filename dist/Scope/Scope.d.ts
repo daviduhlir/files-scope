@@ -8,7 +8,8 @@ export interface ScopeOptions {
     mutexPrefix: string;
     maxLockingTime?: number;
     commitIfFail?: boolean;
-    onRootScopeDone?: () => void;
+    beforeRootScopeOpen?: () => Promise<void>;
+    afterRootScopeDone?: () => Promise<void>;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {

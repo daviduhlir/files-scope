@@ -13,13 +13,15 @@ export interface ScopeOptions {
   mutexPrefix: string // prefix of mutexes
   maxLockingTime?: number // mutex max locking time
   commitIfFail?: boolean // commit result in case handler throws error
-  onRootScopeDone?: () => void
+  beforeRootScopeOpen?: () => Promise<void>
+  afterRootScopeDone?: () => Promise<void>
 }
 
 export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   mutexPrefix: '#dataScope:',
   commitIfFail: false,
-  onRootScopeDone: undefined,
+  beforeRootScopeOpen: undefined,
+  afterRootScopeDone: undefined,
 }
 
 export class Scope {
@@ -90,6 +92,10 @@ export class Scope {
       .map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess }))
       .filter(lock => !allParentalMutexes.find(item => item.key === lock.key))
 
+    if (!parent && this.options.beforeRootScopeOpen) {
+      await this.options.beforeRootScopeOpen()
+    }
+
     const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
       Scope.lockScope(
         mutexKeys,
@@ -112,8 +118,8 @@ export class Scope {
       ),
     )
 
-    if (!parent && this.options.onRootScopeDone) {
-      this.options.onRootScopeDone()
+    if (!parent && this.options.afterRootScopeDone) {
+      await this.options.afterRootScopeDone()
     }
 
     return result

@@ -20,7 +20,8 @@ const AsyncLocalStorage_1 = __importDefault(require("../utils/AsyncLocalStorage"
 exports.DEFAULT_SCOPE_OPTIONS = {
     mutexPrefix: '#dataScope:',
     commitIfFail: false,
-    onRootScopeDone: undefined,
+    beforeRootScopeOpen: undefined,
+    afterRootScopeDone: undefined,
 };
 class Scope {
     constructor(workingDir, options) {
@@ -53,6 +54,9 @@ class Scope {
             const mutexKeys = dependeciesList
                 .map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess }))
                 .filter(lock => !allParentalMutexes.find(item => item.key === lock.key));
+            if (!parent && this.options.beforeRootScopeOpen) {
+                yield this.options.beforeRootScopeOpen();
+            }
             const result = yield this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], () => __awaiter(this, void 0, void 0, function* () {
                 return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                     let result;
@@ -69,8 +73,8 @@ class Scope {
                     return result;
                 }), this.options.maxLockingTime);
             }));
-            if (!parent && this.options.onRootScopeDone) {
-                this.options.onRootScopeDone();
+            if (!parent && this.options.afterRootScopeDone) {
+                yield this.options.afterRootScopeDone();
             }
             return result;
         });
