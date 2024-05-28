@@ -8,6 +8,7 @@ export interface ScopeOptions {
     mutexPrefix: string;
     maxLockingTime?: number;
     commitIfFail?: boolean;
+    onRootScopeDone?: () => void;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {
@@ -16,7 +17,7 @@ export declare class Scope {
     protected options: ScopeOptions;
     constructor(workingDir: string, options?: Partial<ScopeOptions>);
     static prepare(workingDir: string, options?: Partial<ScopeOptions>): Scope;
-    protected createDatalayer(parentDataLayer: DataLayer, dependecies: Dependency[]): DataLayer;
+    protected createDatalayer(dependecies: Dependency[]): DataLayer;
     open<T, K extends {
         [key: string]: Dependency;
     }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T>;

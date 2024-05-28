@@ -13,12 +13,12 @@ export interface FsNode {
     [name: string]: FsNode | string | Buffer | null;
 }
 export declare class DataLayer {
-    readonly sourceFs: IFs;
+    readonly sourceFs: IFs | DataLayerFsApi;
     readonly writeAllowedPaths?: string[];
     protected volume: import("memfs/lib/volume").Volume;
     protected volumeFs: IFs;
     protected unlinkedPaths: string[];
-    constructor(sourceFs: IFs, writeAllowedPaths?: string[]);
+    constructor(sourceFs: IFs | DataLayerFsApi, writeAllowedPaths?: string[]);
     reset(): void;
     get fs(): DataLayerFsApi;
     get promises(): FsPromisesApi;

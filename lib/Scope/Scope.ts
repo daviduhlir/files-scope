@@ -19,7 +19,7 @@ export interface ScopeOptions {
 export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   mutexPrefix: '#dataScope:',
   commitIfFail: false,
-  onRootScopeDone: undefined
+  onRootScopeDone: undefined,
 }
 
 export class Scope {
@@ -68,7 +68,12 @@ export class Scope {
     const parent = stack?.length ? stack[stack.length - 1] : undefined
 
     // data layer factory is just only for root scope
-    const dataLayer = parent ? new DataLayer(parent.fs, dependeciesList.filter(key => key.writeAccess).map(key => key.path)) : this.createDatalayer(dependeciesList)
+    const dataLayer = parent
+      ? new DataLayer(
+          parent.fs,
+          dependeciesList.filter(key => key.writeAccess).map(key => key.path),
+        )
+      : this.createDatalayer(dependeciesList)
 
     // inject fs to dependecies
     dependeciesList.forEach(dependency => dependency[dependencyFsInjector](dataLayer))

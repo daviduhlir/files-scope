@@ -14,11 +14,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Scope = exports.DEFAULT_SCOPE_OPTIONS = void 0;
 const mutex_1 = require("@david.uhlir/mutex");
+const DataLayer_1 = require("../DataLayer/DataLayer");
 const Dependency_1 = require("./Dependency");
 const AsyncLocalStorage_1 = __importDefault(require("../utils/AsyncLocalStorage"));
 exports.DEFAULT_SCOPE_OPTIONS = {
     mutexPrefix: '#dataScope:',
     commitIfFail: false,
+    onRootScopeDone: undefined,
 };
 class Scope {
     constructor(workingDir, options) {
@@ -35,7 +37,7 @@ class Scope {
     static prepare(workingDir, options) {
         return new Scope(workingDir, options);
     }
-    createDatalayer(parentDataLayer, dependecies) {
+    createDatalayer(dependecies) {
         return null;
     }
     open(dependeciesMap, handler) {
@@ -43,7 +45,9 @@ class Scope {
             const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
             const stack = [...(this.stackStorage.getStore() || [])];
             const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1] : undefined;
-            const dataLayer = this.createDatalayer(parent, dependeciesList);
+            const dataLayer = parent
+                ? new DataLayer_1.DataLayer(parent.fs, dependeciesList.filter(key => key.writeAccess).map(key => key.path))
+                : this.createDatalayer(dependeciesList);
             dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
             const result = yield this.stackStorage.run([...stack, dataLayer], () => __awaiter(this, void 0, void 0, function* () {
                 return Scope.lockScope(dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
@@ -61,6 +65,9 @@ class Scope {
                     return result;
                 }), this.options.maxLockingTime);
             }));
+            if (!parent && this.options.onRootScopeDone) {
+                this.options.onRootScopeDone();
+            }
             return result;
         });
     }
