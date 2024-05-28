@@ -26,7 +26,12 @@ export class Scope {
   /**
    * storage of data for nested keys
    */
-  protected stackStorage = new AsyncLocalStorage<DataLayer[]>()
+  protected stackStorage = new AsyncLocalStorage<
+    {
+      layer: DataLayer
+      mutexKeys: MutexKeyItem[]
+    }[]
+  >()
 
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
 
@@ -65,7 +70,9 @@ export class Scope {
 
     // call before open to preapre fs, etc...
     const stack = [...(this.stackStorage.getStore() || [])]
-    const parent = stack?.length ? stack[stack.length - 1] : undefined
+    const parent = stack?.length ? stack[stack.length - 1].layer : undefined
+
+    const allParentalMutexes = stack.map(item => item.mutexKeys).flat()
 
     // data layer factory is just only for root scope
     const dataLayer = parent
@@ -79,9 +86,13 @@ export class Scope {
     dependeciesList.forEach(dependency => dependency[dependencyFsInjector](dataLayer))
 
     // lock access to group
-    const result = await this.stackStorage.run([...stack, dataLayer], async () =>
+    const mutexKeys = dependeciesList
+      .map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess }))
+      .filter(lock => !allParentalMutexes.find(item => item.key === lock.key))
+
+    const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
       Scope.lockScope(
-        dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })),
+        mutexKeys,
         dependeciesMap,
         async () => {
           // do the stuff in scope
@@ -123,6 +134,9 @@ export class Scope {
     maxLockingTime?: number,
   ) {
     const m = mutexes.pop()
+    if (!m) {
+      return handler()
+    }
     return SharedMutex.lockAccess(
       m.key,
       async () => {

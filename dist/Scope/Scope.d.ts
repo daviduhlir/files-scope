@@ -13,7 +13,10 @@ export interface ScopeOptions {
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {
     readonly workingDir: string;
-    protected stackStorage: import("../utils/AsyncLocalStorage").AsyncLocalStorageMock<DataLayer[]>;
+    protected stackStorage: import("../utils/AsyncLocalStorage").AsyncLocalStorageMock<{
+        layer: DataLayer;
+        mutexKeys: MutexKeyItem[];
+    }[]>;
     protected options: ScopeOptions;
     constructor(workingDir: string, options?: Partial<ScopeOptions>);
     static prepare(workingDir: string, options?: Partial<ScopeOptions>): Scope;

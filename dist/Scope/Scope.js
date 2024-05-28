@@ -44,13 +44,17 @@ class Scope {
         return __awaiter(this, void 0, void 0, function* () {
             const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
             const stack = [...(this.stackStorage.getStore() || [])];
-            const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1] : undefined;
+            const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1].layer : undefined;
+            const allParentalMutexes = stack.map(item => item.mutexKeys).flat();
             const dataLayer = parent
                 ? new DataLayer_1.DataLayer(parent.fs, dependeciesList.filter(key => key.writeAccess).map(key => key.path))
                 : this.createDatalayer(dependeciesList);
             dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
-            const result = yield this.stackStorage.run([...stack, dataLayer], () => __awaiter(this, void 0, void 0, function* () {
-                return Scope.lockScope(dependeciesList.map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess })), dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
+            const mutexKeys = dependeciesList
+                .map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess }))
+                .filter(lock => !allParentalMutexes.find(item => item.key === lock.key));
+            const result = yield this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], () => __awaiter(this, void 0, void 0, function* () {
+                return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                     let result;
                     try {
                         result = yield handler(dataLayer.fs, dependeciesMap);
@@ -73,6 +77,9 @@ class Scope {
     }
     static lockScope(mutexes, dependeciesMap, handler, maxLockingTime) {
         const m = mutexes.pop();
+        if (!m) {
+            return handler();
+        }
         return mutex_1.SharedMutex.lockAccess(m.key, () => __awaiter(this, void 0, void 0, function* () {
             if (mutexes.length) {
                 return this.lockScope(mutexes, dependeciesMap, handler, maxLockingTime);
