@@ -7,7 +7,6 @@ import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
 import { isSubpath, makeAbsolutePath } from '../utils'
 import { SUPPORTED_METHODS } from '../constants'
-import { promises as systemFs } from 'fs'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -15,7 +14,7 @@ export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
 export interface DataLayerFsApi extends DataLayerCallbackApi {
   promises: DataLayerPromisesFsApi
   unsafeFullFs: FsCallbackApi
-  addExternalPath: (path: string) => void
+  addExternal: (path: string, fs: IFs | DataLayerFsApi) => void
 }
 
 export interface FsNode {
@@ -34,7 +33,7 @@ export class DataLayer {
   protected unlinkedPaths: string[] = []
 
   // /Users/daviduhlir/Documents/Work/zenoo/hub-design-studio/node_modules/@zenoo/hub-design-studio-core/build/graphql/utils/index.less
-  protected externalPaths: string[] = []
+  protected externals: { path: string; fs: IFs | DataLayerFsApi }[] = []
 
   constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[]) {
     this.volumeFs = createFsFromVolume(this.volume)
@@ -43,8 +42,8 @@ export class DataLayer {
   /**
    * Add read callback alias for subpath
    */
-  addExternalPath(absolutePath: string) {
-    this.externalPaths.push(absolutePath)
+  addExternal(path: string, fs: IFs | DataLayerFsApi) {
+    this.externals.push({ path, fs })
   }
 
   /**
@@ -67,8 +66,8 @@ export class DataLayer {
           return this.promises
         } else if (stringPropKey === 'unsafeFullFs') {
           return this.fs
-        } else if (stringPropKey === 'addExternalPath') {
-          return (path: string) => this.addExternalPath(path)
+        } else if (stringPropKey === 'addExternal') {
+          return (path: string, fs) => this.addExternal(path, fs)
         } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
           return (...args) => {
             const cb = args.pop()
@@ -159,13 +158,15 @@ export class DataLayer {
    * Solve fs actions, that is called from fs proxy
    */
   protected async solveFsAction(method: string, args: any[]) {
+    let external
     switch (method) {
       // read operations
       case 'fileExists':
         // resolve alias
-        if (this.isExternalPath(args[0])) {
+        external = this.getExternalPath(args[0])
+        if (external) {
           try {
-            await systemFs.access(args[0], F_OK)
+            await external.fs.promises.access(args[0], F_OK)
             return true
           } catch (e) {
             return false
@@ -186,9 +187,10 @@ export class DataLayer {
         }
         return false
       case 'directoryExists':
-        if (this.isExternalPath(args[0])) {
+        external = this.getExternalPath(args[0])
+        if (external) {
           try {
-            return (await systemFs.stat(args[0])).isDirectory()
+            return (await external.fs.promises.stat(args[0])).isDirectory()
           } catch (e) {
             return false
           }
@@ -211,8 +213,9 @@ export class DataLayer {
       case 'lstat':
       case 'stat':
       case 'access':
-        if (this.isExternalPath(args[0])) {
-          return systemFs.readFile.apply(this, args)
+        external = this.getExternalPath(args[0])
+        if (external) {
+          return external.fs.promises[method].apply(this, args)
         }
 
         try {
@@ -224,8 +227,9 @@ export class DataLayer {
           return promisify(this.sourceFs[method]).apply(this, args)
         }
       case 'readdir': {
-        if (this.isExternalPath(args[0])) {
-          return systemFs.readdir.apply(this, args)
+        external = this.getExternalPath(args[0])
+        if (external) {
+          return external.fs.promises.readdir.apply(this, args)
         }
 
         let memResult = []
@@ -292,8 +296,8 @@ export class DataLayer {
   /**
    * Get absolute alias path, if match
    */
-  protected isExternalPath(fsPath: string) {
-    return this.externalPaths.find(item => isSubpath(fsPath, item))
+  protected getExternalPath(fsPath: string) {
+    return this.externals.find(item => isSubpath(fsPath, item.path))
   }
 
   /**

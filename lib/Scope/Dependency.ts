@@ -1,7 +1,11 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
-import { DataLayer } from '../DataLayer/DataLayer'
+import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { createSubpath } from '../utils'
 import { SUPPORTED_METHODS, SUPPORTED_FILE_METHODS } from '../constants'
+import { IFs } from 'memfs'
+import * as systemFs from 'fs'
+
+export const SYSTEM_FS: IFs | DataLayerFsApi = systemFs as any
 
 /**
  * Dependency representation with own fs api
@@ -29,6 +33,10 @@ export class Dependency {
     })
   }
 
+  initialize() {
+    // TODO
+  }
+
   /**
    * Factory
    */
@@ -46,6 +54,10 @@ export class Dependency {
 
   static readFolderAccess(filePath: string): DependencyFolder {
     return new DependencyFolder(filePath, false)
+  }
+
+  static readExternalAccess(filePath: string, alternativeFs: IFs | DataLayerFsApi = SYSTEM_FS): DependencyExternal {
+    return new DependencyExternal(filePath, alternativeFs)
   }
 }
 
@@ -76,5 +88,14 @@ export class DependencyFolder extends Dependency {
         return undefined
       },
     })
+  }
+}
+
+export class DependencyExternal extends Dependency {
+  constructor(readonly path: string, readonly alternativeFs: IFs | DataLayerFsApi) {
+    super(path)
+  }
+  initialize() {
+    this.dataLayer.addExternal(this.path, this.alternativeFs)
   }
 }

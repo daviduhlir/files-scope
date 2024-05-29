@@ -1,5 +1,5 @@
 import { assert } from 'chai'
-import { FileScope } from '../dist'
+import { Dependency, FileScope } from '../dist'
 import * as path from 'path'
 
 /**
@@ -7,12 +7,12 @@ import * as path from 'path'
  */
 describe('External paths', function() {
   it('Read from external path', async function() {
-    const absolutePath = path.resolve('./')
     let content
 
-    await FileScope.prepare('./temp').open({}, async (fs, dependecies) => {
-      fs.addExternalPath(absolutePath)
-      content = JSON.parse(await fs.promises.readFile(path.resolve(absolutePath, 'package.json'), 'utf-8'))
+    await FileScope.prepare('./temp').open({
+      external: Dependency.readExternalAccess(path.resolve('./'))
+    }, async (fs, dependecies) => {
+      content = JSON.parse(await fs.promises.readFile(path.resolve('./', 'package.json'), 'utf-8'))
     })
 
     assert(content.name === '@david.uhlir/files-scope', 'Name of package from external path should be readed')

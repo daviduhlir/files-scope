@@ -51,6 +51,7 @@ class Scope {
                 ? new DataLayer_1.DataLayer(parent.fs, dependeciesList.filter(key => key.writeAccess).map(key => key.path))
                 : this.createDatalayer(dependeciesList);
             dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
+            dependeciesList.forEach(dependency => dependency.initialize());
             const mutexKeys = dependeciesList
                 .map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess }))
                 .filter(lock => !allParentalMutexes.find(item => item.key === lock.key));
@@ -93,3 +94,4 @@ class Scope {
     }
 }
 exports.Scope = Scope;
+//# sourceMappingURL=Scope.js.map

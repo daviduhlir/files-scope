@@ -1,9 +1,30 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DependencyFolder = exports.DependencyFile = exports.Dependency = exports.dependencyFsInjector = void 0;
+exports.DependencyExternal = exports.DependencyFolder = exports.DependencyFile = exports.Dependency = exports.dependencyFsInjector = exports.SYSTEM_FS = void 0;
 const utils_1 = require("../utils");
 const constants_1 = require("../constants");
+const systemFs = __importStar(require("fs"));
+exports.SYSTEM_FS = systemFs;
 exports.dependencyFsInjector = '__dependencyFsInjector__';
 class Dependency {
     constructor(path, writeAccess) {
@@ -28,6 +49,8 @@ class Dependency {
             },
         });
     }
+    initialize() {
+    }
     static writeFileAccess(filePath) {
         return new DependencyFile(filePath, true);
     }
@@ -39,6 +62,9 @@ class Dependency {
     }
     static readFolderAccess(filePath) {
         return new DependencyFolder(filePath, false);
+    }
+    static readExternalAccess(filePath, alternativeFs = exports.SYSTEM_FS) {
+        return new DependencyExternal(filePath, alternativeFs);
     }
 }
 exports.Dependency = Dependency;
@@ -70,3 +96,15 @@ class DependencyFolder extends Dependency {
     }
 }
 exports.DependencyFolder = DependencyFolder;
+class DependencyExternal extends Dependency {
+    constructor(path, alternativeFs) {
+        super(path);
+        this.path = path;
+        this.alternativeFs = alternativeFs;
+    }
+    initialize() {
+        this.dataLayer.addExternal(this.path, this.alternativeFs);
+    }
+}
+exports.DependencyExternal = DependencyExternal;
+//# sourceMappingURL=Dependency.js.map

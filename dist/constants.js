@@ -19,3 +19,4 @@ exports.SUPPORTED_METHODS = [
     'directoryExists',
 ];
 exports.SUPPORTED_FILE_METHODS = ['access', 'appendFile', 'copyFile', 'readFile', 'rename', 'stat', 'unlink', 'writeFile', 'fileExists'];
+//# sourceMappingURL=constants.js.map

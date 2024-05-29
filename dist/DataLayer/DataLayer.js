@@ -35,18 +35,17 @@ const path = __importStar(require("path"));
 const constants_1 = require("constants");
 const utils_1 = require("../utils");
 const constants_2 = require("../constants");
-const fs_1 = require("fs");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
         this.sourceFs = sourceFs;
         this.writeAllowedPaths = writeAllowedPaths;
         this.volume = new memfs_1.Volume();
         this.unlinkedPaths = [];
-        this.externalPaths = [];
+        this.externals = [];
         this.volumeFs = memfs_1.createFsFromVolume(this.volume);
     }
-    addExternalPath(absolutePath) {
-        this.externalPaths.push(absolutePath);
+    addExternal(path, fs) {
+        this.externals.push({ path, fs });
     }
     reset() {
         this.volume = new memfs_1.Volume();
@@ -63,8 +62,8 @@ class DataLayer {
                 else if (stringPropKey === 'unsafeFullFs') {
                     return this.fs;
                 }
-                else if (stringPropKey === 'addExternalPath') {
-                    return (path) => this.addExternalPath(path);
+                else if (stringPropKey === 'addExternal') {
+                    return (path, fs) => this.addExternal(path, fs);
                 }
                 else if (constants_2.SUPPORTED_METHODS.includes(stringPropKey)) {
                     return (...args) => {
@@ -145,11 +144,13 @@ class DataLayer {
     }
     solveFsAction(method, args) {
         return __awaiter(this, void 0, void 0, function* () {
+            let external;
             switch (method) {
                 case 'fileExists':
-                    if (this.isExternalPath(args[0])) {
+                    external = this.getExternalPath(args[0]);
+                    if (external) {
                         try {
-                            yield fs_1.promises.access(args[0], constants_1.F_OK);
+                            yield external.fs.promises.access(args[0], constants_1.F_OK);
                             return true;
                         }
                         catch (e) {
@@ -172,9 +173,10 @@ class DataLayer {
                     }
                     return false;
                 case 'directoryExists':
-                    if (this.isExternalPath(args[0])) {
+                    external = this.getExternalPath(args[0]);
+                    if (external) {
                         try {
-                            return (yield fs_1.promises.stat(args[0])).isDirectory();
+                            return (yield external.fs.promises.stat(args[0])).isDirectory();
                         }
                         catch (e) {
                             return false;
@@ -199,8 +201,9 @@ class DataLayer {
                 case 'lstat':
                 case 'stat':
                 case 'access':
-                    if (this.isExternalPath(args[0])) {
-                        return fs_1.promises.readFile.apply(this, args);
+                    external = this.getExternalPath(args[0]);
+                    if (external) {
+                        return external.fs.promises[method].apply(this, args);
                     }
                     try {
                         return yield this.volumeFs.promises[method].apply(this, args);
@@ -212,8 +215,9 @@ class DataLayer {
                         return util_1.promisify(this.sourceFs[method]).apply(this, args);
                     }
                 case 'readdir': {
-                    if (this.isExternalPath(args[0])) {
-                        return fs_1.promises.readdir.apply(this, args);
+                    external = this.getExternalPath(args[0]);
+                    if (external) {
+                        return external.fs.promises.readdir.apply(this, args);
                     }
                     let memResult = [];
                     try {
@@ -276,8 +280,8 @@ class DataLayer {
             }
         });
     }
-    isExternalPath(fsPath) {
-        return this.externalPaths.find(item => utils_1.isSubpath(fsPath, item));
+    getExternalPath(fsPath) {
+        return this.externals.find(item => utils_1.isSubpath(fsPath, item.path));
     }
     checkWriteAllowed(fsPath) {
         if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => utils_1.isSubpath(fsPath, allowedPath))) {
@@ -344,3 +348,4 @@ class DataLayer {
     }
 }
 exports.DataLayer = DataLayer;
+//# sourceMappingURL=DataLayer.js.map

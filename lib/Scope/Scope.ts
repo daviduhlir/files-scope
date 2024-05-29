@@ -86,6 +86,7 @@ export class Scope {
 
     // inject fs to dependecies
     dependeciesList.forEach(dependency => dependency[dependencyFsInjector](dataLayer))
+    dependeciesList.forEach(dependency => dependency.initialize())
 
     // lock access to group
     const mutexKeys = dependeciesList
