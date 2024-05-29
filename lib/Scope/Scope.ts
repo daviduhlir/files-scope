@@ -3,7 +3,7 @@ import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
 import * as path from 'path'
 import AsyncLocalStorage from '../utils/AsyncLocalStorage'
-import { isSubpath, makeRelativePath } from '../utils'
+import { concatMutexKey, isSubpath, makeRelativePath } from '../utils'
 
 /**
  * Files scope, with mutexes implemented
@@ -93,7 +93,8 @@ export class Scope {
     const mutexKeys = dependeciesList
       .filter(key => key.needsLock())
       .map(key => ({
-        key: path.resolve('/', this.options.mutexPrefix, makeRelativePath(this.workingDir), makeRelativePath(key.path)),
+        // TODO make better key creation
+        key: concatMutexKey(this.options.mutexPrefix, this.workingDir, key.path),
         singleAccess: key.writeAccess,
       }))
       .filter(lock => !allParentalMutexes.find(item => isSubpath(lock.key, item.key)))

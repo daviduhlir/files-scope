@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isSubpath = exports.createSubpath = exports.makeAbsolutePath = exports.makeRelativePath = void 0;
+exports.concatMutexKey = exports.isSubpath = exports.createSubpath = exports.makeAbsolutePath = exports.makeRelativePath = void 0;
 const path = __importStar(require("path"));
 function makeRelativePath(inputPath) {
     return inputPath.startsWith('/') ? `.${inputPath}` : inputPath;
@@ -47,3 +47,22 @@ function isSubpath(testedPath, startsWith) {
     return true;
 }
 exports.isSubpath = isSubpath;
+function concatMutexKey(...parts) {
+    return parts
+        .map(part => {
+        let wPart = part.trim();
+        if (wPart.startsWith('./')) {
+            wPart = wPart.substring(2);
+        }
+        else if (wPart.startsWith('/')) {
+            wPart = wPart.substring(1);
+        }
+        if (wPart.endsWith('/')) {
+            wPart = wPart.substring(0, wPart.length - 1);
+        }
+        return wPart;
+    })
+        .filter(Boolean)
+        .join('/');
+}
+exports.concatMutexKey = concatMutexKey;

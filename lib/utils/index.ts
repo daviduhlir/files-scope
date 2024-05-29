@@ -27,3 +27,21 @@ export function isSubpath(testedPath: string, startsWith: string) {
   }
   return true
 }
+
+export function concatMutexKey(...parts: string[]) {
+  return parts
+    .map(part => {
+      let wPart = part.trim()
+      if (wPart.startsWith('./')) {
+        wPart = wPart.substring(2)
+      } else if (wPart.startsWith('/')) {
+        wPart = wPart.substring(1)
+      }
+      if (wPart.endsWith('/')) {
+        wPart = wPart.substring(0, wPart.length - 1)
+      }
+      return wPart
+    })
+    .filter(Boolean)
+    .join('/')
+}
