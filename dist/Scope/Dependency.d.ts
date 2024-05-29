@@ -10,6 +10,7 @@ export declare class Dependency {
     constructor(path: string, writeAccess?: boolean);
     [dependencyFsInjector]: (dataLayer: DataLayer) => void;
     protected getFsProxy(): any;
+    needsLock(): boolean;
     initialize(): void;
     static writeFileAccess(filePath: string): DependencyFile;
     static readFileAccess(filePath: string): DependencyFile;
@@ -27,6 +28,7 @@ export declare class DependencyFolder extends Dependency {
 export declare class DependencyExternal extends Dependency {
     readonly path: string;
     readonly alternativeFs: IFs | DataLayerFsApi;
-    constructor(path: string, alternativeFs: IFs | DataLayerFsApi);
+    constructor(path: string, alternativeFs?: IFs | DataLayerFsApi);
+    needsLock(): boolean;
     initialize(): void;
 }

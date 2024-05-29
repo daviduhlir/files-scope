@@ -49,6 +49,9 @@ class Dependency {
             },
         });
     }
+    needsLock() {
+        return true;
+    }
     initialize() {
     }
     static writeFileAccess(filePath) {
@@ -97,10 +100,13 @@ class DependencyFolder extends Dependency {
 }
 exports.DependencyFolder = DependencyFolder;
 class DependencyExternal extends Dependency {
-    constructor(path, alternativeFs) {
+    constructor(path, alternativeFs = exports.SYSTEM_FS) {
         super(path);
         this.path = path;
         this.alternativeFs = alternativeFs;
+    }
+    needsLock() {
+        return false;
     }
     initialize() {
         this.dataLayer.addExternal(this.path, this.alternativeFs);

@@ -33,6 +33,10 @@ export class Dependency {
     })
   }
 
+  needsLock() {
+    return true
+  }
+
   initialize() {
     // TODO
   }
@@ -92,8 +96,11 @@ export class DependencyFolder extends Dependency {
 }
 
 export class DependencyExternal extends Dependency {
-  constructor(readonly path: string, readonly alternativeFs: IFs | DataLayerFsApi) {
+  constructor(readonly path: string, readonly alternativeFs: IFs | DataLayerFsApi = SYSTEM_FS) {
     super(path)
+  }
+  needsLock() {
+    return false
   }
   initialize() {
     this.dataLayer.addExternal(this.path, this.alternativeFs)

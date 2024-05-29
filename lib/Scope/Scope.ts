@@ -1,8 +1,9 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
-import { createSubpath } from '../utils'
+import * as path from 'path'
 import AsyncLocalStorage from '../utils/AsyncLocalStorage'
+import { isSubpath, makeRelativePath } from '../utils'
 
 /**
  * Files scope, with mutexes implemented
@@ -90,8 +91,12 @@ export class Scope {
 
     // lock access to group
     const mutexKeys = dependeciesList
-      .map(key => ({ key: this.options.mutexPrefix + key.path, singleAccess: key.writeAccess }))
-      .filter(lock => !allParentalMutexes.find(item => item.key === lock.key))
+      .filter(key => key.needsLock())
+      .map(key => ({
+        key: path.resolve('/', this.options.mutexPrefix, makeRelativePath(this.workingDir), makeRelativePath(key.path)),
+        singleAccess: key.writeAccess,
+      }))
+      .filter(lock => !allParentalMutexes.find(item => isSubpath(lock.key, item.key)))
 
     if (!parent && this.options.beforeRootScopeOpen) {
       await this.options.beforeRootScopeOpen()
