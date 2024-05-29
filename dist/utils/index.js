@@ -47,4 +47,3 @@ function isSubpath(testedPath, startsWith) {
     return true;
 }
 exports.isSubpath = isSubpath;
-//# sourceMappingURL=index.js.map
