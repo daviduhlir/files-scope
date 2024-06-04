@@ -13,16 +13,17 @@ export interface DataLayerFsApi extends DataLayerCallbackApi {
 export interface FsNode {
     [name: string]: FsNode | string | Buffer | null;
 }
+export interface ExternalFsLink {
+    path: string;
+    fs: IFs | DataLayerFsApi;
+}
 export declare class DataLayer {
     readonly sourceFs: IFs | DataLayerFsApi;
     readonly writeAllowedPaths?: string[];
     protected volume: import("memfs/lib/volume").Volume;
     protected volumeFs: IFs;
     protected unlinkedPaths: string[];
-    protected externals: {
-        path: string;
-        fs: IFs | DataLayerFsApi;
-    }[];
+    protected externals: ExternalFsLink[];
     constructor(sourceFs: IFs | DataLayerFsApi, writeAllowedPaths?: string[]);
     addExternal(path: string, fs: IFs | DataLayerFsApi): void;
     reset(): void;
@@ -35,11 +36,9 @@ export declare class DataLayer {
         };
     };
     commit(ignoreErrors?: boolean): Promise<string[]>;
+    protected solveDirectFsAction(method: string, args: any[]): Promise<any>;
     protected solveFsAction(method: string, args: any[]): Promise<any>;
-    protected getExternalPath(fsPath: string): {
-        path: string;
-        fs: IFs | DataLayerFsApi;
-    };
+    protected getExternalPath(fsPath: string): ExternalFsLink;
     protected checkWriteAllowed(fsPath: string): void;
     protected pathFromReaddirEntry(readdirEntry: any): string;
     protected sortedArrayFromReaddirResult(readdirResult: Map<string, any>): any[];

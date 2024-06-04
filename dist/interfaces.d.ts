@@ -1,6 +1,19 @@
 /// <reference types="node" />
-import { Dirent, MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, Stats, WriteFileOptions } from 'fs';
+import { Dirent, MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, Stats, WriteFileOptions, ReadStream, WriteStream, promises } from 'fs';
 import { Abortable } from 'events';
+interface StreamOptions {
+    flags?: string | undefined;
+    encoding?: BufferEncoding | undefined;
+    fd?: number | promises.FileHandle | undefined;
+    mode?: number | undefined;
+    autoClose?: boolean | undefined;
+    emitClose?: boolean | undefined;
+    start?: number | undefined;
+    highWaterMark?: number | undefined;
+}
+interface ReadStreamOptions extends StreamOptions {
+    end?: number | undefined;
+}
 export interface DataLayerCallbackApi {
     access(path: string, mode: number | undefined, callback: NoParamCallback): void;
     access(path: string, callback: NoParamCallback): void;
@@ -51,6 +64,8 @@ export interface DataLayerCallbackApi {
     writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
     fileExists(path: string, callback: (err: NodeJS.ErrnoException | null, data: boolean) => void): any;
     directoryExists(path: string, callback: (err: NodeJS.ErrnoException | null, data: boolean) => void): any;
+    createReadStream(path: string, options?: ReadStreamOptions | string): ReadStream;
+    createWriteStream(path: string, options?: BufferEncoding | StreamOptions): WriteStream;
 }
 export interface DataLayerPromiseSingleFileApi {
     access(mode: number | undefined): Promise<void>;
@@ -74,6 +89,8 @@ export interface DataLayerPromiseSingleFileApi {
     writeFile(data: string | Uint8Array): Promise<void>;
     writeFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
     fileExists(): Promise<boolean>;
+    createReadStream(options?: ReadStreamOptions | string): ReadStream;
+    createWriteStream(options?: BufferEncoding | StreamOptions): WriteStream;
 }
 export interface DataLayerPromiseApi {
     access(path: string, mode: number | undefined): Promise<void>;
@@ -126,3 +143,4 @@ export interface DataLayerPromiseApi {
     fileExists(path: string): Promise<boolean>;
     directoryExists(path: string): Promise<boolean>;
 }
+export {};

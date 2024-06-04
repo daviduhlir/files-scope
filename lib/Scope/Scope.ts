@@ -23,7 +23,7 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   commitIfFail: false,
   beforeRootScopeOpen: undefined,
   afterRootScopeDone: undefined,
-  readonly: false
+  readonly: false,
 }
 
 export class Scope {

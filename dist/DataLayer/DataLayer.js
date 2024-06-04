@@ -65,6 +65,9 @@ class DataLayer {
                 else if (stringPropKey === 'addExternal') {
                     return (path, fs) => this.addExternal(path, fs);
                 }
+                else if (constants_2.SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
+                    return (...args) => this.solveDirectFsAction.apply(this, [stringPropKey, args]);
+                }
                 else if (constants_2.SUPPORTED_METHODS.includes(stringPropKey)) {
                     return (...args) => {
                         const cb = args.pop();
@@ -143,6 +146,33 @@ class DataLayer {
             return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths);
         });
     }
+    solveDirectFsAction(method, args) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let external;
+            switch (method) {
+                case 'createReadStream':
+                    external = this.getExternalPath(args[0]);
+                    if (external) {
+                        return external.fs.createReadStream.apply(this, args);
+                    }
+                    try {
+                        return this.volumeFs.createReadStream.apply(this, args);
+                    }
+                    catch (e) {
+                        if (this.checkIsUnlinked(args[0])) {
+                            throw new Error(`No such file on path ${args[0]}`);
+                        }
+                        return this.sourceFs.createReadStream.apply(this, args);
+                    }
+                case 'createWriteStream':
+                    this.checkWriteAllowed(args[0]);
+                    yield this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true });
+                    return this.volumeFs.createWriteStream.apply(this, args);
+                default:
+                    throw new Error(`Method ${method} is not implemented.`);
+            }
+        });
+    }
     solveFsAction(method, args) {
         return __awaiter(this, void 0, void 0, function* () {
             let external;
@@ -202,6 +232,7 @@ class DataLayer {
                 case 'lstat':
                 case 'stat':
                 case 'access':
+                case 'createReadStream':
                     external = this.getExternalPath(args[0]);
                     if (external) {
                         return external.fs.promises[method].apply(this, args);
@@ -244,9 +275,10 @@ class DataLayer {
                     return this.sortedArrayFromReaddirResult(result);
                 }
                 case 'writeFile':
+                case 'createWriteStream':
                     this.checkWriteAllowed(args[0]);
                     yield this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true });
-                    return this.volumeFs.promises.writeFile.apply(this, args);
+                    return this.volumeFs.promises[method].apply(this, args);
                 case 'appendFile':
                     this.checkWriteAllowed(args[0]);
                     yield this.prepareInFs(args[0]);

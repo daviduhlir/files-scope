@@ -27,7 +27,7 @@ export class Dependency {
         const stringPropKey = propKey.toString()
         if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
           return (...args) => this.dataLayer.fs[stringPropKey].apply(this, [this.path, ...args])
-        } else  if (SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
+        } else if (SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
           return (...args) => this.dataLayer.fs.promises[stringPropKey].apply(this, [this.path, ...args])
         }
         return undefined

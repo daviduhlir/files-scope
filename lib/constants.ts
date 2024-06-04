@@ -16,9 +16,6 @@ export const SUPPORTED_METHODS = [
   'directoryExists',
 ]
 
-export const SUPPORTED_DIRECT_METHODS = [
-  'createReadStream',
-  'createWriteStream',
-]
+export const SUPPORTED_DIRECT_METHODS = ['createReadStream', 'createWriteStream']
 
 export const SUPPORTED_FILE_METHODS = ['access', 'appendFile', 'copyFile', 'readFile', 'rename', 'stat', 'unlink', 'writeFile', 'fileExists']

@@ -42,7 +42,10 @@ class Dependency {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
                 const stringPropKey = propKey.toString();
-                if (constants_1.SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
+                if (constants_1.SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
+                    return (...args) => this.dataLayer.fs[stringPropKey].apply(this, [this.path, ...args]);
+                }
+                else if (constants_1.SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
                     return (...args) => this.dataLayer.fs.promises[stringPropKey].apply(this, [this.path, ...args]);
                 }
                 return undefined;

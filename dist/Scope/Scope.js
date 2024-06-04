@@ -23,7 +23,7 @@ exports.DEFAULT_SCOPE_OPTIONS = {
     commitIfFail: false,
     beforeRootScopeOpen: undefined,
     afterRootScopeDone: undefined,
-    readonly: false
+    readonly: false,
 };
 class Scope {
     constructor(workingDir, options) {

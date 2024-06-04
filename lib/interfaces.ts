@@ -1,21 +1,33 @@
-import { Dirent, MakeDirectoryOptions, NoParamCallback, RmDirOptions, RmOptions, StatOptions, Stats, WriteFileOptions, ReadStream, WriteStream, promises } from 'fs'
+import {
+  Dirent,
+  MakeDirectoryOptions,
+  NoParamCallback,
+  RmDirOptions,
+  RmOptions,
+  StatOptions,
+  Stats,
+  WriteFileOptions,
+  ReadStream,
+  WriteStream,
+  promises,
+} from 'fs'
 import { Abortable } from 'events'
 
 interface StreamOptions {
-  flags?: string | undefined;
-  encoding?: BufferEncoding | undefined;
-  fd?: number | promises.FileHandle | undefined;
-  mode?: number | undefined;
-  autoClose?: boolean | undefined;
+  flags?: string | undefined
+  encoding?: BufferEncoding | undefined
+  fd?: number | promises.FileHandle | undefined
+  mode?: number | undefined
+  autoClose?: boolean | undefined
   /**
    * @default false
    */
-  emitClose?: boolean | undefined;
-  start?: number | undefined;
-  highWaterMark?: number | undefined;
+  emitClose?: boolean | undefined
+  start?: number | undefined
+  highWaterMark?: number | undefined
 }
 interface ReadStreamOptions extends StreamOptions {
-  end?: number | undefined;
+  end?: number | undefined
 }
 
 export interface DataLayerCallbackApi {
