@@ -17,12 +17,12 @@ export interface DataLayerCallbackApi {
   readdir(path: string, callback: (err: NodeJS.ErrnoException | null, data: string[]) => void)
   readdir(
     path: string,
-    options: { encoding: BufferEncoding | null; withFileTypes?: false | undefined } | BufferEncoding | undefined | null,
+    options: { encoding: BufferEncoding | null | undefined; withFileTypes?: false | undefined } | BufferEncoding | undefined | null,
     callback: (err: NodeJS.ErrnoException | null, data: string[]) => void,
   )
   readdir(
     path: string,
-    options: { encoding: BufferEncoding | null; withFileTypes: true } | BufferEncoding | undefined | null,
+    options: { encoding?: BufferEncoding | null | undefined; withFileTypes: true } | BufferEncoding | undefined | null,
     callback: (err: NodeJS.ErrnoException | null, data: Dirent[]) => void,
   )
   readFile(path: string, callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void): any
@@ -87,11 +87,11 @@ export interface DataLayerPromiseApi {
   readdir(path: string): Promise<string[]>
   readdir(
     path: string,
-    options?: { encoding: BufferEncoding | null; withFileTypes?: false | undefined } | BufferEncoding | undefined | null,
+    options?: { encoding?: BufferEncoding | null; withFileTypes?: false | undefined } | BufferEncoding | undefined | null,
   ): Promise<string[]>
   readdir(
     path: string,
-    options?: { encoding: BufferEncoding | null | undefined; withFileTypes: true } | BufferEncoding | undefined | null,
+    options?: { encoding?: BufferEncoding | null | undefined; withFileTypes: true } | BufferEncoding | undefined | null,
   ): Promise<Dirent[]>
   readFile(path: string): Promise<string | Buffer>
   readFile(

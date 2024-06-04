@@ -152,6 +152,7 @@ export class DataLayer {
       }
     }
     this.reset()
+    return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths)
   }
 
   /**

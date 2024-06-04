@@ -9,7 +9,8 @@ export interface ScopeOptions {
     maxLockingTime?: number;
     commitIfFail?: boolean;
     beforeRootScopeOpen?: () => Promise<void>;
-    afterRootScopeDone?: () => Promise<void>;
+    afterRootScopeDone?: (changedPaths: string[]) => Promise<void>;
+    readonly?: boolean;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {

@@ -34,7 +34,7 @@ export declare class DataLayer {
             [path: string]: string | Buffer;
         };
     };
-    commit(ignoreErrors?: boolean): Promise<void>;
+    commit(ignoreErrors?: boolean): Promise<string[]>;
     protected solveFsAction(method: string, args: any[]): Promise<any>;
     protected getExternalPath(fsPath: string): {
         path: string;

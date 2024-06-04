@@ -1,9 +1,8 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
-import * as path from 'path'
 import AsyncLocalStorage from '../utils/AsyncLocalStorage'
-import { concatMutexKey, isSubpath, makeRelativePath } from '../utils'
+import { concatMutexKey, isSubpath } from '../utils'
 
 /**
  * Files scope, with mutexes implemented
@@ -15,7 +14,8 @@ export interface ScopeOptions {
   maxLockingTime?: number // mutex max locking time
   commitIfFail?: boolean // commit result in case handler throws error
   beforeRootScopeOpen?: () => Promise<void>
-  afterRootScopeDone?: () => Promise<void>
+  afterRootScopeDone?: (changedPaths: string[]) => Promise<void>
+  readonly?: boolean
 }
 
 export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
@@ -23,6 +23,7 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   commitIfFail: false,
   beforeRootScopeOpen: undefined,
   afterRootScopeDone: undefined,
+  readonly: false
 }
 
 export class Scope {
@@ -71,6 +72,10 @@ export class Scope {
   async open<T, K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {
     const dependeciesList = Object.keys(dependeciesMap).reduce<Dependency[]>((acc, key) => [...acc, dependeciesMap[key]], [])
 
+    if (this.options.readonly && dependeciesList.some(d => d.writeAccess)) {
+      throw new Error('This scope has only read access')
+    }
+
     // call before open to preapre fs, etc...
     const stack = [...(this.stackStorage.getStore() || [])]
     const parent = stack?.length ? stack[stack.length - 1].layer : undefined
@@ -103,6 +108,7 @@ export class Scope {
       await this.options.beforeRootScopeOpen()
     }
 
+    let changedPaths = []
     const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
       Scope.lockScope(
         mutexKeys,
@@ -114,11 +120,11 @@ export class Scope {
             result = await handler(dataLayer.fs, dependeciesMap)
           } catch (e) {
             if (this.options.commitIfFail) {
-              await dataLayer.commit()
+              changedPaths = await dataLayer.commit()
             }
             throw e
           }
-          await dataLayer.commit()
+          changedPaths = await dataLayer.commit()
           return result
         },
         this.options.maxLockingTime,
@@ -126,7 +132,7 @@ export class Scope {
     )
 
     if (!parent && this.options.afterRootScopeDone) {
-      await this.options.afterRootScopeDone()
+      await this.options.afterRootScopeDone(changedPaths)
     }
 
     return result

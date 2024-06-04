@@ -23,6 +23,7 @@ exports.DEFAULT_SCOPE_OPTIONS = {
     commitIfFail: false,
     beforeRootScopeOpen: undefined,
     afterRootScopeDone: undefined,
+    readonly: false
 };
 class Scope {
     constructor(workingDir, options) {
@@ -45,6 +46,9 @@ class Scope {
     open(dependeciesMap, handler) {
         return __awaiter(this, void 0, void 0, function* () {
             const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
+            if (this.options.readonly && dependeciesList.some(d => d.writeAccess)) {
+                throw new Error('This scope has only read access');
+            }
             const stack = [...(this.stackStorage.getStore() || [])];
             const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1].layer : undefined;
             const allParentalMutexes = stack.map(item => item.mutexKeys).flat();
@@ -63,6 +67,7 @@ class Scope {
             if (!parent && this.options.beforeRootScopeOpen) {
                 yield this.options.beforeRootScopeOpen();
             }
+            let changedPaths = [];
             const result = yield this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], () => __awaiter(this, void 0, void 0, function* () {
                 return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
                     let result;
@@ -71,16 +76,16 @@ class Scope {
                     }
                     catch (e) {
                         if (this.options.commitIfFail) {
-                            yield dataLayer.commit();
+                            changedPaths = yield dataLayer.commit();
                         }
                         throw e;
                     }
-                    yield dataLayer.commit();
+                    changedPaths = yield dataLayer.commit();
                     return result;
                 }), this.options.maxLockingTime);
             }));
             if (!parent && this.options.afterRootScopeDone) {
-                yield this.options.afterRootScopeDone();
+                yield this.options.afterRootScopeDone(changedPaths);
             }
             return result;
         });
