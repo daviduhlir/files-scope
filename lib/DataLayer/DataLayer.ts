@@ -6,7 +6,7 @@ import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
 import { isSubpath, makeAbsolutePath } from '../utils'
-import { SUPPORTED_METHODS } from '../constants'
+import { SUPPORTED_DIRECT_METHODS, SUPPORTED_METHODS } from '../constants'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -21,6 +21,11 @@ export interface FsNode {
   [name: string]: FsNode | string | Buffer | null
 }
 
+export interface ExternalFsLink {
+  path: string
+  fs: IFs | DataLayerFsApi
+}
+
 /**
  * Data layer
  * Provides fs api, and store changes in memfs
@@ -33,7 +38,7 @@ export class DataLayer {
   protected unlinkedPaths: string[] = []
 
   // /Users/daviduhlir/Documents/Work/zenoo/hub-design-studio/node_modules/@zenoo/hub-design-studio-core/build/graphql/utils/index.less
-  protected externals: { path: string; fs: IFs | DataLayerFsApi }[] = []
+  protected externals: ExternalFsLink[] = []
 
   constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[]) {
     this.volumeFs = createFsFromVolume(this.volume)
@@ -68,6 +73,8 @@ export class DataLayer {
           return this.fs
         } else if (stringPropKey === 'addExternal') {
           return (path: string, fs) => this.addExternal(path, fs)
+        } else if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
+          return (...args) => this.solveDirectFsAction.apply(this, [stringPropKey, args])
         } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
           return (...args) => {
             const cb = args.pop()
@@ -156,10 +163,38 @@ export class DataLayer {
   }
 
   /**
+   * Solve direct fs actions
+   */
+  protected async solveDirectFsAction(method: string, args: any[]) {
+    let external: ExternalFsLink
+    switch (method) {
+      case 'createReadStream':
+        external = this.getExternalPath(args[0])
+        if (external) {
+          return external.fs.createReadStream.apply(this, args)
+        }
+        try {
+          return this.volumeFs.createReadStream.apply(this, args)
+        } catch (e) {
+          if (this.checkIsUnlinked(args[0] as string)) {
+            throw new Error(`No such file on path ${args[0]}`)
+          }
+          return this.sourceFs.createReadStream.apply(this, args)
+        }
+      case 'createWriteStream':
+        this.checkWriteAllowed(args[0])
+        await this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true })
+        return this.volumeFs.createWriteStream.apply(this, args)
+      default:
+        throw new Error(`Method ${method} is not implemented.`)
+    }
+  }
+
+  /**
    * Solve fs actions, that is called from fs proxy
    */
   protected async solveFsAction(method: string, args: any[]) {
-    let external
+    let external: ExternalFsLink
     switch (method) {
       // read operations
       case 'fileExists':
@@ -299,7 +334,7 @@ export class DataLayer {
   /**
    * Get absolute alias path, if match
    */
-  protected getExternalPath(fsPath: string) {
+  protected getExternalPath(fsPath: string): ExternalFsLink {
     return this.externals.find(item => isSubpath(fsPath, item.path))
   }
 

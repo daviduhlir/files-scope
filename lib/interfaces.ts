@@ -65,10 +65,8 @@ export interface DataLayerCallbackApi {
   writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any
   fileExists(path: string, callback: (err: NodeJS.ErrnoException | null, data: boolean) => void)
   directoryExists(path: string, callback: (err: NodeJS.ErrnoException | null, data: boolean) => void)
-  createReadStream(path: string, callback: (err: NodeJS.ErrnoException | null, data: ReadStream) => void)
-  createReadStream(path: string, options: ReadStreamOptions | string, callback: (err: NodeJS.ErrnoException | null, data: ReadStream) => void)
-  createWriteStream(path: string, callback: (err: NodeJS.ErrnoException | null, data: WriteStream) => void)
-  createWriteStream(path: string, options: BufferEncoding | StreamOptions, callback: (err: NodeJS.ErrnoException | null, data: WriteStream) => void)
+  createReadStream(path: string, options?: ReadStreamOptions | string): ReadStream
+  createWriteStream(path: string, options?: BufferEncoding | StreamOptions): WriteStream
 }
 
 export interface DataLayerPromiseSingleFileApi {
@@ -134,6 +132,4 @@ export interface DataLayerPromiseApi {
   writeFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>
   fileExists(path: string): Promise<boolean>
   directoryExists(path: string): Promise<boolean>
-  createReadStream(path: string, options?: ReadStreamOptions | string): ReadStream
-  createWriteStream(path: string, options?: BufferEncoding | StreamOptions): WriteStream
 }

@@ -1,7 +1,7 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
 import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { createSubpath } from '../utils'
-import { SUPPORTED_METHODS, SUPPORTED_FILE_METHODS } from '../constants'
+import { SUPPORTED_METHODS, SUPPORTED_FILE_METHODS, SUPPORTED_DIRECT_METHODS } from '../constants'
 import { IFs } from 'memfs'
 import * as systemFs from 'fs'
 
@@ -25,7 +25,9 @@ export class Dependency {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         const stringPropKey = propKey.toString()
-        if (SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
+        if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
+          return (...args) => this.dataLayer.fs[stringPropKey].apply(this, [this.path, ...args])
+        } else  if (SUPPORTED_FILE_METHODS.includes(stringPropKey)) {
           return (...args) => this.dataLayer.fs.promises[stringPropKey].apply(this, [this.path, ...args])
         }
         return undefined
