@@ -214,6 +214,7 @@ export class DataLayer {
       case 'lstat':
       case 'stat':
       case 'access':
+      case 'createReadStream':
         external = this.getExternalPath(args[0])
         if (external) {
           return external.fs.promises[method].apply(this, args)
@@ -257,9 +258,10 @@ export class DataLayer {
       }
       // write oprations
       case 'writeFile':
+      case 'createWriteStream':
         this.checkWriteAllowed(args[0])
         await this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true })
-        return this.volumeFs.promises.writeFile.apply(this, args)
+        return this.volumeFs.promises[method].apply(this, args)
       case 'appendFile':
         this.checkWriteAllowed(args[0])
         await this.prepareInFs(args[0])
