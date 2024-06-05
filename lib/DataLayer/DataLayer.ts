@@ -174,11 +174,13 @@ export class DataLayer {
           return external.fs.createReadStream.apply(this, args)
         }
         try {
+          await this.volumeFs.promises.stat(args[0])
           return this.volumeFs.createReadStream.apply(this, args)
         } catch (e) {
           if (this.checkIsUnlinked(args[0] as string)) {
             throw new Error(`No such file on path ${args[0]}`)
           }
+          await promisify(this.sourceFs.stat)(args[0])
           return this.sourceFs.createReadStream.apply(this, args)
         }
       case 'createWriteStream':

@@ -156,12 +156,14 @@ class DataLayer {
                         return external.fs.createReadStream.apply(this, args);
                     }
                     try {
+                        yield this.volumeFs.promises.stat(args[0]);
                         return this.volumeFs.createReadStream.apply(this, args);
                     }
                     catch (e) {
                         if (this.checkIsUnlinked(args[0])) {
                             throw new Error(`No such file on path ${args[0]}`);
                         }
+                        yield util_1.promisify(this.sourceFs.stat)(args[0]);
                         return this.sourceFs.createReadStream.apply(this, args);
                     }
                 case 'createWriteStream':
