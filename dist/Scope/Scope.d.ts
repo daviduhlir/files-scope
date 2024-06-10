@@ -15,7 +15,7 @@ export interface ScopeOptions {
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {
     readonly workingDir: string;
-    protected stackStorage: import("../utils/AsyncLocalStorage").AsyncLocalStorageMock<{
+    protected stackStorage: import("../helpers/AsyncLocalStorage").AsyncLocalStorageMock<{
         layer: DataLayer;
         mutexKeys: MutexKeyItem[];
     }[]>;

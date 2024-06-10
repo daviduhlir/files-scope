@@ -147,3 +147,4 @@ export interface DataLayerPromiseApi {
   fileExists(path: string): Promise<boolean>
   directoryExists(path: string): Promise<boolean>
   copyFromFs(srcPath: string, srcFs: DataLayerCallbackApi, dest: string, flags: number): Promise<void>
+}

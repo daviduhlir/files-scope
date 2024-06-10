@@ -1,5 +1,8 @@
-export declare function makeRelativePath(inputPath: string): string;
-export declare function makeAbsolutePath(inputPath: string): string;
-export declare function createSubpath(parentPath: string, subpath: string): string;
-export declare function isSubpath(testedPath: string, startsWith: string): boolean;
-export declare function concatMutexKey(...parts: string[]): string;
+import { DataLayerFsApi } from '../DataLayer/DataLayer';
+export interface CopyResourcesOptions {
+    skipExisting?: boolean;
+    exclude?: string[];
+    include?: string[];
+}
+export declare const matchPathFilter: (fsPath: string, matchers: string[]) => boolean;
+export declare const copyFs: (sourcePath: string, destinationPath: string, sourceFs: DataLayerFsApi, destinationFs: DataLayerFsApi, options?: CopyResourcesOptions) => Promise<void>;

@@ -1,8 +1,8 @@
 import { SharedMutex } from '@david.uhlir/mutex'
 import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
-import AsyncLocalStorage from '../utils/AsyncLocalStorage'
-import { concatMutexKey, isSubpath } from '../utils'
+import AsyncLocalStorage from '../helpers/AsyncLocalStorage'
+import { concatMutexKey, isSubpath } from '../helpers'
 
 /**
  * Files scope, with mutexes implemented

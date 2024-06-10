@@ -16,8 +16,8 @@ exports.Scope = exports.DEFAULT_SCOPE_OPTIONS = void 0;
 const mutex_1 = require("@david.uhlir/mutex");
 const DataLayer_1 = require("../DataLayer/DataLayer");
 const Dependency_1 = require("./Dependency");
-const AsyncLocalStorage_1 = __importDefault(require("../utils/AsyncLocalStorage"));
-const utils_1 = require("../utils");
+const AsyncLocalStorage_1 = __importDefault(require("../helpers/AsyncLocalStorage"));
+const helpers_1 = require("../helpers");
 exports.DEFAULT_SCOPE_OPTIONS = {
     mutexPrefix: '#dataScope:',
     commitIfFail: false,
@@ -60,16 +60,16 @@ class Scope {
             const mutexKeys = dependeciesList
                 .filter(key => key.needsLock())
                 .map(key => ({
-                key: utils_1.concatMutexKey(this.options.mutexPrefix, this.workingDir, key.path),
+                key: helpers_1.concatMutexKey(this.options.mutexPrefix, this.workingDir, key.path),
                 singleAccess: key.writeAccess,
             }))
-                .filter(lock => !allParentalMutexes.find(item => utils_1.isSubpath(lock.key, item.key)));
-            if (!parent && this.options.beforeRootScopeOpen) {
-                yield this.options.beforeRootScopeOpen();
-            }
+                .filter(lock => !allParentalMutexes.find(item => helpers_1.isSubpath(lock.key, item.key)));
             let changedPaths = [];
             const result = yield this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], () => __awaiter(this, void 0, void 0, function* () {
                 return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
+                    if (!parent && this.options.beforeRootScopeOpen) {
+                        yield this.options.beforeRootScopeOpen();
+                    }
                     let result;
                     try {
                         result = yield handler(dataLayer.fs, dependeciesMap);

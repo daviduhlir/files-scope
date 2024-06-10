@@ -33,7 +33,7 @@ const memfs_1 = require("memfs");
 const util_1 = require("util");
 const path = __importStar(require("path"));
 const constants_1 = require("constants");
-const utils_1 = require("../utils");
+const helpers_1 = require("../helpers");
 const constants_2 = require("../constants");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
@@ -179,6 +179,12 @@ class DataLayer {
         return __awaiter(this, void 0, void 0, function* () {
             let external;
             switch (method) {
+                case 'copyFromFs':
+                    const srcPath = args[0];
+                    const externalFs = args[1];
+                    const dstPath = args[2];
+                    const content = yield externalFs.promises.readFile(srcPath);
+                    return this.fs.promises.writeFile(dstPath, content);
                 case 'fileExists':
                     external = this.getExternalPath(args[0]);
                     if (external) {
@@ -316,10 +322,10 @@ class DataLayer {
         });
     }
     getExternalPath(fsPath) {
-        return this.externals.find(item => utils_1.isSubpath(fsPath, item.path));
+        return this.externals.find(item => helpers_1.isSubpath(fsPath, item.path));
     }
     checkWriteAllowed(fsPath) {
-        if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => utils_1.isSubpath(fsPath, allowedPath))) {
+        if (this.writeAllowedPaths && !this.writeAllowedPaths.find(allowedPath => helpers_1.isSubpath(fsPath, allowedPath))) {
             throw new Error(`Write to path ${fsPath} is not allowed in layer.`);
         }
     }
@@ -378,8 +384,8 @@ class DataLayer {
         return accumulator;
     }
     checkIsUnlinked(fsPath) {
-        const fsPathRelative = utils_1.makeAbsolutePath(fsPath);
-        return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(utils_1.makeAbsolutePath(unlinked)));
+        const fsPathRelative = helpers_1.makeAbsolutePath(fsPath);
+        return this.unlinkedPaths.find(unlinked => fsPathRelative.startsWith(helpers_1.makeAbsolutePath(unlinked)));
     }
 }
 exports.DataLayer = DataLayer;

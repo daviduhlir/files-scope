@@ -21,7 +21,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyExternal = exports.DependencyFolder = exports.DependencyFile = exports.Dependency = exports.dependencyFsInjector = exports.SYSTEM_FS = void 0;
-const utils_1 = require("../utils");
+const helpers_1 = require("../helpers");
 const constants_1 = require("../constants");
 const systemFs = __importStar(require("fs"));
 exports.SYSTEM_FS = systemFs;
@@ -92,7 +92,7 @@ class DependencyFolder extends Dependency {
                 if (constants_1.SUPPORTED_METHODS.includes(stringPropKey)) {
                     return (...args) => {
                         const requestedPath = args.shift();
-                        const callPath = utils_1.createSubpath(this.path, requestedPath);
+                        const callPath = helpers_1.createSubpath(this.path, requestedPath);
                         return this.dataLayer.fs.promises[stringPropKey].apply(this, [callPath, ...args]);
                     };
                 }

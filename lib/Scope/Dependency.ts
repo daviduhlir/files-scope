@@ -1,6 +1,6 @@
 import { DataLayerPromiseApi, DataLayerPromiseSingleFileApi } from '../interfaces'
 import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
-import { createSubpath } from '../utils'
+import { createSubpath } from '../helpers'
 import { SUPPORTED_METHODS, SUPPORTED_FILE_METHODS, SUPPORTED_DIRECT_METHODS } from '../constants'
 import { IFs } from 'memfs'
 import * as systemFs from 'fs'
