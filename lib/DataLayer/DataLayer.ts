@@ -5,7 +5,7 @@ import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
-import { isSubpath, makeAbsolutePath } from '../utils'
+import { isSubpath, makeAbsolutePath } from '../helpers'
 import { SUPPORTED_DIRECT_METHODS, SUPPORTED_METHODS } from '../constants'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
@@ -198,6 +198,12 @@ export class DataLayer {
   protected async solveFsAction(method: string, args: any[]) {
     let external: ExternalFsLink
     switch (method) {
+      case 'copyFromFs':
+        const srcPath: string = args[0]
+        const externalFs: DataLayerCallbackApi = args[1]
+        const dstPath: string = args[2]
+        const content = await externalFs.promises.readFile(srcPath)
+        return this.fs.promises.writeFile(dstPath, content)
       // read operations
       case 'fileExists':
         // resolve alias

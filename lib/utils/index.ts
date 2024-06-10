@@ -1,47 +1,73 @@
+import { Stats, constants as fsConstants } from 'fs'
+import { DataLayerFsApi } from '../DataLayer/DataLayer'
 import * as path from 'path'
-
-export function makeRelativePath(inputPath: string) {
-  return inputPath.startsWith('/') ? `.${inputPath}` : inputPath
+export interface CopyResourcesOptions {
+  skipExisting?: boolean
+  exclude?: string[]
+  include?: string[]
 }
 
-export function makeAbsolutePath(inputPath: string) {
-  return inputPath.startsWith('./') ? `${inputPath.substring(1)}` : inputPath.startsWith('/') ? inputPath : `/${inputPath}`
-}
-
-export function createSubpath(parentPath: string, subpath: string) {
-  return path.resolve(parentPath, makeRelativePath(subpath))
-}
-
-export function isSubpath(testedPath: string, startsWith: string) {
-  const testedPathParts = testedPath.split('/').filter(Boolean)
-  const startsWithParts = startsWith.split('/').filter(Boolean)
-
-  if (testedPathParts.length < startsWithParts.length) {
-    return false
-  }
-
-  for (let i = 0; i < startsWithParts.length; i++) {
-    if (testedPathParts[i] !== startsWithParts[i]) {
-      return false
+export const matchPathFilter = (fsPath: string, matchers: string[]) => {
+  const fsPathParts = fsPath.split('/')
+  for (const matcher of matchers) {
+    const matcherParts = matcher.split('/')
+    const partsMax = Math.min(fsPathParts.length, matcherParts.length)
+    let matched = true
+    for (let i = 0; i < partsMax; i++) {
+      if (fsPathParts[i] !== partsMax[i]) {
+        matched = false
+        break
+      }
+    }
+    if (matched) {
+      return true
     }
   }
-  return true
+  return false
 }
 
-export function concatMutexKey(...parts: string[]) {
-  return parts
-    .map(part => {
-      let wPart = part.trim()
-      if (wPart.startsWith('./')) {
-        wPart = wPart.substring(2)
-      } else if (wPart.startsWith('/')) {
-        wPart = wPart.substring(1)
+export const copyFs = async (
+  sourcePath: string,
+  destinationPath: string,
+  sourceFs: DataLayerFsApi,
+  destinationFs: DataLayerFsApi,
+  options: CopyResourcesOptions = {},
+): Promise<void> => {
+  // skip excluded
+  if (options.exclude?.length && matchPathFilter(sourcePath, options.exclude)) {
+    return
+  }
+
+  if (options.include?.length && !matchPathFilter(sourcePath, options.include)) {
+    return
+  }
+
+  const sourceStat = await sourceFs.promises.stat(sourcePath)
+
+  if (sourceStat.isDirectory()) {
+    const dirents = await sourceFs.promises.readdir(sourcePath)
+    for (const dirent of dirents) {
+      await copyFs(path.resolve(sourcePath, dirent), path.resolve(destinationPath, dirent), sourceFs, destinationFs, options)
+    }
+  } else {
+    if (options.skipExisting) {
+      try {
+        await destinationFs.promises.access(destinationPath, fsConstants.F_OK)
+        return
+      } catch (e) {}
+    }
+
+    const destinationDirname = path.dirname(destinationPath)
+    let destinationStat: Stats
+    try {
+      destinationStat = await destinationFs.promises.stat(destinationDirname)
+      if (destinationStat.isFile()) {
+        await destinationFs.promises.rm(destinationDirname, { recursive: true })
+        await destinationFs.promises.mkdir(destinationDirname, { recursive: true })
       }
-      if (wPart.endsWith('/')) {
-        wPart = wPart.substring(0, wPart.length - 1)
-      }
-      return wPart
-    })
-    .filter(Boolean)
-    .join('/')
+    } catch (e) {
+      await destinationFs.promises.mkdir(destinationDirname, { recursive: true })
+    }
+    await destinationFs.promises.writeFile(destinationPath, await sourceFs.promises.readFile(sourcePath))
+  }
 }

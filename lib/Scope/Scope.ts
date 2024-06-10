@@ -104,16 +104,16 @@ export class Scope {
       }))
       .filter(lock => !allParentalMutexes.find(item => isSubpath(lock.key, item.key)))
 
-    if (!parent && this.options.beforeRootScopeOpen) {
-      await this.options.beforeRootScopeOpen()
-    }
-
     let changedPaths = []
     const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
       Scope.lockScope(
         mutexKeys,
         dependeciesMap,
         async () => {
+          if (!parent && this.options.beforeRootScopeOpen) {
+            await this.options.beforeRootScopeOpen()
+          }
+
           // do the stuff in scope
           let result
           try {
