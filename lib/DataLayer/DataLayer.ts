@@ -74,11 +74,14 @@ export class DataLayer {
         } else if (stringPropKey === 'addExternal') {
           return (path: string, fs) => this.addExternal(path, fs)
         } else if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
-          return (...args) => this.solveDirectFsAction.apply(this, [stringPropKey, args])
+          return (...args) => this.solveDirectFsAction(stringPropKey, args)
         } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
           return (...args) => {
             const cb = args.pop()
-            this.solveFsAction.apply(this, [stringPropKey, args]).then((result, error) => cb(error, result))
+            this.solveFsAction(stringPropKey, args).then(
+              result => cb(null, result),
+              error => cb(error, null),
+            )
           }
         }
         return undefined
@@ -95,7 +98,7 @@ export class DataLayer {
         if (propKey === 'unsafeFullFs') {
           return this.promises
         }
-        return (...args) => this.solveFsAction.apply(this, [propKey.toString(), args])
+        return (...args) => this.solveFsAction(propKey.toString(), args)
       },
     })
   }
@@ -225,7 +228,7 @@ export class DataLayer {
             if (this.checkIsUnlinked(args[0] as string)) {
               throw new Error(`No such file on path ${args[0]}`)
             }
-            await promisify(this.sourceFs.access).apply(args[0], F_OK)
+            await promisify(this.sourceFs.access as any)(args[0], F_OK)
             return true
           } catch (e) {}
         }
@@ -247,7 +250,7 @@ export class DataLayer {
             if (this.checkIsUnlinked(args[0] as string)) {
               throw new Error(`No such directory on path ${args[0]}`)
             }
-            if ((await promisify(this.sourceFs.stat).apply(args[0])).isDirectory()) {
+            if (((await promisify(this.sourceFs.stat)(args[0])) as any).isDirectory()) {
               return true
             }
           } catch (e) {}

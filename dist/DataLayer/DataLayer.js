@@ -66,12 +66,12 @@ class DataLayer {
                     return (path, fs) => this.addExternal(path, fs);
                 }
                 else if (constants_2.SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
-                    return (...args) => this.solveDirectFsAction.apply(this, [stringPropKey, args]);
+                    return (...args) => this.solveDirectFsAction(stringPropKey, args);
                 }
                 else if (constants_2.SUPPORTED_METHODS.includes(stringPropKey)) {
                     return (...args) => {
                         const cb = args.pop();
-                        this.solveFsAction.apply(this, [stringPropKey, args]).then((result, error) => cb(error, result));
+                        this.solveFsAction(stringPropKey, args).then(result => cb(null, result), error => cb(error, null));
                     };
                 }
                 return undefined;
@@ -84,7 +84,7 @@ class DataLayer {
                 if (propKey === 'unsafeFullFs') {
                     return this.promises;
                 }
-                return (...args) => this.solveFsAction.apply(this, [propKey.toString(), args]);
+                return (...args) => this.solveFsAction(propKey.toString(), args);
             },
         });
     }
@@ -205,7 +205,7 @@ class DataLayer {
                             if (this.checkIsUnlinked(args[0])) {
                                 throw new Error(`No such file on path ${args[0]}`);
                             }
-                            yield util_1.promisify(this.sourceFs.access).apply(args[0], constants_1.F_OK);
+                            yield util_1.promisify(this.sourceFs.access)(args[0], constants_1.F_OK);
                             return true;
                         }
                         catch (e) { }
@@ -229,7 +229,7 @@ class DataLayer {
                             if (this.checkIsUnlinked(args[0])) {
                                 throw new Error(`No such directory on path ${args[0]}`);
                             }
-                            if ((yield util_1.promisify(this.sourceFs.stat).apply(args[0])).isDirectory()) {
+                            if ((yield util_1.promisify(this.sourceFs.stat)(args[0])).isDirectory()) {
                                 return true;
                             }
                         }
