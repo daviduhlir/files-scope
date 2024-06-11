@@ -15,6 +15,7 @@ export interface DataLayerFsApi extends DataLayerCallbackApi {
   promises: DataLayerPromisesFsApi
   unsafeFullFs: FsCallbackApi
   addExternal: (path: string, fs: IFs | DataLayerFsApi) => void
+  statSync: (path: string) => Stats<number>
 }
 
 export interface FsNode {
@@ -168,27 +169,40 @@ export class DataLayer {
   /**
    * Solve direct fs actions
    */
-  protected async solveDirectFsAction(method: string, args: any[]) {
+  protected solveDirectFsAction(method: string, args: any[]) {
     let external: ExternalFsLink
     switch (method) {
+      case 'statSync':
+        external = this.getExternalPath(args[0])
+        if (external) {
+          return external.fs.statSync.apply(this, args)
+        }
+        try {
+          return this.volumeFs.statSync.apply(this, args)
+        } catch (e) {
+          if (this.checkIsUnlinked(args[0] as string)) {
+            throw new Error(`No such file on path ${args[0]}`)
+          }
+          return this.sourceFs.statSync.apply(this, args)
+        }
       case 'createReadStream':
         external = this.getExternalPath(args[0])
         if (external) {
           return external.fs.createReadStream.apply(this, args)
         }
         try {
-          await this.volumeFs.promises.stat(args[0])
+          this.volumeFs.statSync(args[0])
           return this.volumeFs.createReadStream.apply(this, args)
         } catch (e) {
           if (this.checkIsUnlinked(args[0] as string)) {
             throw new Error(`No such file on path ${args[0]}`)
           }
-          await promisify(this.sourceFs.stat)(args[0])
+          this.sourceFs.statSync(args[0])
           return this.sourceFs.createReadStream.apply(this, args)
         }
       case 'createWriteStream':
         this.checkWriteAllowed(args[0])
-        await this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true })
+        this.volumeFs.mkdirSync(path.dirname(args[0]), { recursive: true })
         return this.volumeFs.createWriteStream.apply(this, args)
       default:
         throw new Error(`Method ${method} is not implemented.`)

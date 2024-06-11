@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { IFs } from 'memfs';
 import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types';
+import Stats from 'memfs/lib/Stats';
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces';
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
     unsafeFullFs: FsPromisesApi;
@@ -9,6 +10,7 @@ export interface DataLayerFsApi extends DataLayerCallbackApi {
     promises: DataLayerPromisesFsApi;
     unsafeFullFs: FsCallbackApi;
     addExternal: (path: string, fs: IFs | DataLayerFsApi) => void;
+    statSync: (path: string) => Stats<number>;
 }
 export interface FsNode {
     [name: string]: FsNode | string | Buffer | null;
@@ -36,7 +38,7 @@ export declare class DataLayer {
         };
     };
     commit(ignoreErrors?: boolean): Promise<string[]>;
-    protected solveDirectFsAction(method: string, args: any[]): Promise<any>;
+    protected solveDirectFsAction(method: string, args: any[]): any;
     protected solveFsAction(method: string, args: any[]): Promise<any>;
     protected getExternalPath(fsPath: string): ExternalFsLink;
     protected checkWriteAllowed(fsPath: string): void;

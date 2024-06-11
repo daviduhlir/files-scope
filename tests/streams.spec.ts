@@ -13,7 +13,7 @@ describe('Streams tests', function() {
     const result: string = await FileScope.prepare('./tests/assets').open({
       lorem: Dependency.readFileAccess('/lorem.txt'),
     }, async (fs, dependecies) => {
-      const reader = await dependecies.lorem.fs.createReadStream()
+      const reader = dependecies.lorem.fs.createReadStream()
 
       return new Promise((resolve) => {
         let accumulator = ''
@@ -30,7 +30,7 @@ describe('Streams tests', function() {
     await FileScope.prepare('./temp').open({
       lorem: Dependency.writeFileAccess('/buffer.txt'),
     }, async (fs, dependecies) => {
-      const writer = await dependecies.lorem.fs.createWriteStream()
+      const writer = dependecies.lorem.fs.createWriteStream()
       await new Promise((resolve, reject) => {
         writer.write(testBuffer, (err) => {
           if (err) {

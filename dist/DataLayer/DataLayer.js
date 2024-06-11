@@ -147,33 +147,45 @@ class DataLayer {
         });
     }
     solveDirectFsAction(method, args) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let external;
-            switch (method) {
-                case 'createReadStream':
-                    external = this.getExternalPath(args[0]);
-                    if (external) {
-                        return external.fs.createReadStream.apply(this, args);
+        let external;
+        switch (method) {
+            case 'statSync':
+                external = this.getExternalPath(args[0]);
+                if (external) {
+                    return external.fs.statSync.apply(this, args);
+                }
+                try {
+                    return this.volumeFs.statSync.apply(this, args);
+                }
+                catch (e) {
+                    if (this.checkIsUnlinked(args[0])) {
+                        throw new Error(`No such file on path ${args[0]}`);
                     }
-                    try {
-                        yield this.volumeFs.promises.stat(args[0]);
-                        return this.volumeFs.createReadStream.apply(this, args);
+                    return this.sourceFs.statSync.apply(this, args);
+                }
+            case 'createReadStream':
+                external = this.getExternalPath(args[0]);
+                if (external) {
+                    return external.fs.createReadStream.apply(this, args);
+                }
+                try {
+                    this.volumeFs.statSync(args[0]);
+                    return this.volumeFs.createReadStream.apply(this, args);
+                }
+                catch (e) {
+                    if (this.checkIsUnlinked(args[0])) {
+                        throw new Error(`No such file on path ${args[0]}`);
                     }
-                    catch (e) {
-                        if (this.checkIsUnlinked(args[0])) {
-                            throw new Error(`No such file on path ${args[0]}`);
-                        }
-                        yield util_1.promisify(this.sourceFs.stat)(args[0]);
-                        return this.sourceFs.createReadStream.apply(this, args);
-                    }
-                case 'createWriteStream':
-                    this.checkWriteAllowed(args[0]);
-                    yield this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true });
-                    return this.volumeFs.createWriteStream.apply(this, args);
-                default:
-                    throw new Error(`Method ${method} is not implemented.`);
-            }
-        });
+                    this.sourceFs.statSync(args[0]);
+                    return this.sourceFs.createReadStream.apply(this, args);
+                }
+            case 'createWriteStream':
+                this.checkWriteAllowed(args[0]);
+                this.volumeFs.mkdirSync(path.dirname(args[0]), { recursive: true });
+                return this.volumeFs.createWriteStream.apply(this, args);
+            default:
+                throw new Error(`Method ${method} is not implemented.`);
+        }
     }
     solveFsAction(method, args) {
         return __awaiter(this, void 0, void 0, function* () {
