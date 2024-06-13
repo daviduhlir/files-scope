@@ -5,8 +5,9 @@ import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
 import { DataLayerCallbackApi, DataLayerPromiseApi } from '../interfaces'
 import { F_OK } from 'constants'
-import { isSubpath, makeAbsolutePath } from '../helpers'
+import { isSubpath, makeAbsolutePath, randomHash } from '../helpers'
 import { SUPPORTED_DIRECT_METHODS, SUPPORTED_METHODS } from '../constants'
+import { promises as systemFs } from 'fs'
 
 export interface DataLayerPromisesFsApi extends DataLayerPromiseApi {
   unsafeFullFs: FsPromisesApi
@@ -37,6 +38,7 @@ export class DataLayer {
   protected volume = new Volume()
   protected volumeFs: IFs
   protected unlinkedPaths: string[] = []
+  protected tempFiles: string[] = []
 
   // /Users/daviduhlir/Documents/Work/zenoo/hub-design-studio/node_modules/@zenoo/hub-design-studio-core/build/graphql/utils/index.less
   protected externals: ExternalFsLink[] = []
@@ -162,6 +164,15 @@ export class DataLayer {
         }
       }
     }
+    for(const tempFile of this.tempFiles) {
+      try {
+        await systemFs.unlink(tempFile)
+      } catch(e) {
+        console.log(`[FILE-SCOPE] Remove temporary path on path ${tempFile} failed`, e)
+      }
+    }
+    this.tempFiles = []
+
     this.reset()
     return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths)
   }
@@ -215,6 +226,20 @@ export class DataLayer {
   protected async solveFsAction(method: string, args: any[]) {
     let external: ExternalFsLink
     switch (method) {
+      // Access file in systemFS
+      case 'accessInSystemFs': {
+        const srcPath: string = args[0]
+        const dstTempPath: string = args[1]
+        if (!(await this.fs.promises.fileExists(srcPath))) {
+          throw new Error(`No such file on path ${srcPath}`)
+        }
+        const content = await this.fs.promises.readFile(srcPath)
+        const dstPath = path.resolve(dstTempPath, randomHash())
+        // TODO check if already exists??
+        await systemFs.writeFile(dstPath, content)
+        this.tempFiles.push(dstPath)
+        return dstPath
+      }
       case 'copyFromFs':
         const srcPath: string = args[0]
         const externalFs: DataLayerCallbackApi = args[1]
