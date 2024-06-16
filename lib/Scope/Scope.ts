@@ -18,6 +18,7 @@ export interface ScopeOptions {
   beforeScopeOpen?: () => Promise<void>
   afterScopeDone?: (changedPaths: string[]) => Promise<void>
   readonly?: boolean
+  handlerWrapper?: <T>(actionCaller: () => Promise<T>) => Promise<T>
 }
 
 export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
@@ -123,7 +124,11 @@ export class Scope {
           // do the stuff in scope
           let result
           try {
-            result = await handler(dataLayer.fs, dependeciesMap)
+            if (this.options.handlerWrapper) {
+              result = await this.options.handlerWrapper(() => handler(dataLayer.fs, dependeciesMap))
+            } else {
+              result = await handler(dataLayer.fs, dependeciesMap)
+            }
           } catch (e) {
             if (this.options.commitIfFail) {
               changedPaths = await dataLayer.commit()
