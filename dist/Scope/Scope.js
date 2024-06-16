@@ -75,7 +75,12 @@ class Scope {
                     }
                     let result;
                     try {
-                        result = yield handler(dataLayer.fs, dependeciesMap);
+                        if (this.options.handlerWrapper) {
+                            result = yield this.options.handlerWrapper(() => handler(dataLayer.fs, dependeciesMap));
+                        }
+                        else {
+                            result = yield handler(dataLayer.fs, dependeciesMap);
+                        }
                     }
                     catch (e) {
                         if (this.options.commitIfFail) {
