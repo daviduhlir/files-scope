@@ -25,6 +25,7 @@ export declare class DataLayer {
     protected volume: import("memfs/lib/volume").Volume;
     protected volumeFs: IFs;
     protected unlinkedPaths: string[];
+    protected tempFiles: string[];
     protected externals: ExternalFsLink[];
     constructor(sourceFs: IFs | DataLayerFsApi, writeAllowedPaths?: string[]);
     addExternal(path: string, fs: IFs | DataLayerFsApi): void;

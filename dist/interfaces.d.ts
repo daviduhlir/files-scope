@@ -15,6 +15,7 @@ interface ReadStreamOptions extends StreamOptions {
     end?: number | undefined;
 }
 export interface DataLayerCallbackApi {
+    accessInSystemFs(path: string, systemTempPath: string, callback: (err: NodeJS.ErrnoException | null, path: string) => void): void;
     access(path: string, mode: number | undefined, callback: NoParamCallback): void;
     access(path: string, callback: NoParamCallback): void;
     appendFile(path: string, data: string | Uint8Array, callback: NoParamCallback): any;
@@ -95,6 +96,7 @@ export interface DataLayerPromiseSingleFileApi {
     createWriteStream(options?: BufferEncoding | StreamOptions): WriteStream;
 }
 export interface DataLayerPromiseApi {
+    accessInSystemFs(path: string, systemTempPath: string): Promise<string>;
     access(path: string, mode: number | undefined): Promise<void>;
     access(path: string): Promise<void>;
     appendFile(path: string, data: string | Uint8Array): Promise<void>;

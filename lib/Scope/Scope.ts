@@ -15,6 +15,8 @@ export interface ScopeOptions {
   commitIfFail?: boolean // commit result in case handler throws error
   beforeRootScopeOpen?: () => Promise<void>
   afterRootScopeDone?: (changedPaths: string[]) => Promise<void>
+  beforeScopeOpen?: () => Promise<void>
+  afterScopeDone?: (changedPaths: string[]) => Promise<void>
   readonly?: boolean
 }
 
@@ -114,6 +116,10 @@ export class Scope {
             await this.options.beforeRootScopeOpen()
           }
 
+          if (this.options.beforeScopeOpen) {
+            await this.options.beforeScopeOpen()
+          }
+
           // do the stuff in scope
           let result
           try {
@@ -130,6 +136,10 @@ export class Scope {
         this.options.maxLockingTime,
       ),
     )
+
+    if (this.options.afterScopeDone) {
+      await this.options.afterScopeDone(changedPaths)
+    }
 
     if (!parent && this.options.afterRootScopeDone) {
       await this.options.afterRootScopeDone(changedPaths)

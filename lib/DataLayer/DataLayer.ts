@@ -164,10 +164,10 @@ export class DataLayer {
         }
       }
     }
-    for(const tempFile of this.tempFiles) {
+    for (const tempFile of this.tempFiles) {
       try {
         await systemFs.unlink(tempFile)
-      } catch(e) {
+      } catch (e) {
         console.log(`[FILE-SCOPE] Remove temporary path on path ${tempFile} failed`, e)
       }
     }

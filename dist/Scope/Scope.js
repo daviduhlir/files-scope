@@ -70,6 +70,9 @@ class Scope {
                     if (!parent && this.options.beforeRootScopeOpen) {
                         yield this.options.beforeRootScopeOpen();
                     }
+                    if (this.options.beforeScopeOpen) {
+                        yield this.options.beforeScopeOpen();
+                    }
                     let result;
                     try {
                         result = yield handler(dataLayer.fs, dependeciesMap);
@@ -84,6 +87,9 @@ class Scope {
                     return result;
                 }), this.options.maxLockingTime);
             }));
+            if (this.options.afterScopeDone) {
+                yield this.options.afterScopeDone(changedPaths);
+            }
             if (!parent && this.options.afterRootScopeDone) {
                 yield this.options.afterRootScopeDone(changedPaths);
             }

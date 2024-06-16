@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.concatMutexKey = exports.isSubpath = exports.createSubpath = exports.makeAbsolutePath = exports.makeRelativePath = void 0;
+exports.concatMutexKey = exports.randomHash = exports.isSubpath = exports.createSubpath = exports.makeAbsolutePath = exports.makeRelativePath = void 0;
 const path = __importStar(require("path"));
 function makeRelativePath(inputPath) {
     return inputPath.startsWith('/') ? `.${inputPath}` : inputPath;
@@ -47,6 +47,13 @@ function isSubpath(testedPath, startsWith) {
     return true;
 }
 exports.isSubpath = isSubpath;
+function randomHash() {
+    return [...Array(10)]
+        .map(x => 0)
+        .map(() => Math.random().toString(36).slice(2))
+        .join('');
+}
+exports.randomHash = randomHash;
 function concatMutexKey(...parts) {
     return parts
         .map(part => {

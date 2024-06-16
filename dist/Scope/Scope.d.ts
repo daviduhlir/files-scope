@@ -10,6 +10,8 @@ export interface ScopeOptions {
     commitIfFail?: boolean;
     beforeRootScopeOpen?: () => Promise<void>;
     afterRootScopeDone?: (changedPaths: string[]) => Promise<void>;
+    beforeScopeOpen?: () => Promise<void>;
+    afterScopeDone?: (changedPaths: string[]) => Promise<void>;
     readonly?: boolean;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;

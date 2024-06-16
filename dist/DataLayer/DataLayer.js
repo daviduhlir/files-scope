@@ -35,12 +35,14 @@ const path = __importStar(require("path"));
 const constants_1 = require("constants");
 const helpers_1 = require("../helpers");
 const constants_2 = require("../constants");
+const fs_1 = require("fs");
 class DataLayer {
     constructor(sourceFs, writeAllowedPaths) {
         this.sourceFs = sourceFs;
         this.writeAllowedPaths = writeAllowedPaths;
         this.volume = new memfs_1.Volume();
         this.unlinkedPaths = [];
+        this.tempFiles = [];
         this.externals = [];
         this.volumeFs = memfs_1.createFsFromVolume(this.volume);
     }
@@ -142,6 +144,15 @@ class DataLayer {
                     }
                 }
             }
+            for (const tempFile of this.tempFiles) {
+                try {
+                    yield fs_1.promises.unlink(tempFile);
+                }
+                catch (e) {
+                    console.log(`[FILE-SCOPE] Remove temporary path on path ${tempFile} failed`, e);
+                }
+            }
+            this.tempFiles = [];
             this.reset();
             return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths);
         });
@@ -191,6 +202,18 @@ class DataLayer {
         return __awaiter(this, void 0, void 0, function* () {
             let external;
             switch (method) {
+                case 'accessInSystemFs': {
+                    const srcPath = args[0];
+                    const dstTempPath = args[1];
+                    if (!(yield this.fs.promises.fileExists(srcPath))) {
+                        throw new Error(`No such file on path ${srcPath}`);
+                    }
+                    const content = yield this.fs.promises.readFile(srcPath);
+                    const dstPath = path.resolve(dstTempPath, helpers_1.randomHash());
+                    yield fs_1.promises.writeFile(dstPath, content);
+                    this.tempFiles.push(dstPath);
+                    return dstPath;
+                }
                 case 'copyFromFs':
                     const srcPath = args[0];
                     const externalFs = args[1];
