@@ -24,7 +24,7 @@ exports.DEFAULT_SCOPE_OPTIONS = {
     beforeRootScopeOpen: undefined,
     afterRootScopeDone: undefined,
     readonly: false,
-    ignoreCommitErrors: true
+    ignoreCommitErrors: true,
 };
 class Scope {
     constructor(workingDir, options) {
@@ -54,7 +54,7 @@ class Scope {
             const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1].layer : undefined;
             const allParentalMutexes = stack.map(item => item.mutexKeys).flat();
             const dataLayer = parent
-                ? new DataLayer_1.DataLayer(parent.fs, dependeciesList.filter(key => key.writeAccess).map(key => key.path))
+                ? new DataLayer_1.DataLayer(parent.fs, [...parent.writeAllowedPaths, ...dependeciesList.filter(key => key.writeAccess).map(key => key.path)])
                 : this.createDatalayer(dependeciesList);
             dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
             dependeciesList.forEach(dependency => dependency.initialize());

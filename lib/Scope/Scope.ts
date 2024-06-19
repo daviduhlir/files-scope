@@ -28,7 +28,7 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   beforeRootScopeOpen: undefined,
   afterRootScopeDone: undefined,
   readonly: false,
-  ignoreCommitErrors: true
+  ignoreCommitErrors: true,
 }
 
 export class Scope {
@@ -89,10 +89,7 @@ export class Scope {
 
     // data layer factory is just only for root scope
     const dataLayer = parent
-      ? new DataLayer(
-          parent.fs,
-          dependeciesList.filter(key => key.writeAccess).map(key => key.path),
-        )
+      ? new DataLayer(parent.fs, [...parent.writeAllowedPaths, ...dependeciesList.filter(key => key.writeAccess).map(key => key.path)])
       : this.createDatalayer(dependeciesList)
 
     // inject fs to dependecies

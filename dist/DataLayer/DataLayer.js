@@ -341,12 +341,16 @@ class DataLayer {
                     this.checkWriteAllowed(args[0]);
                     this.unlinkedPaths.push(args[0]);
                     try {
-                        if (method === 'unlink') {
-                            return this.volumeFs.promises.unlink.apply(this, args);
-                        }
-                        return this.volumeFs.promises[method].apply(this, args);
+                        return yield this.volumeFs.promises[method].apply(this, args);
                     }
-                    catch (e) { }
+                    catch (e) {
+                        try {
+                            yield util_1.promisify(this.sourceFs.stat)(args[0]);
+                        }
+                        catch (statError) {
+                            throw e;
+                        }
+                    }
                     break;
                 case 'mkdir':
                     this.checkWriteAllowed(args[0]);

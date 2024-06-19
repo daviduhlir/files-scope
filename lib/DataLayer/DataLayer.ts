@@ -366,12 +366,14 @@ export class DataLayer {
         this.checkWriteAllowed(args[0])
         this.unlinkedPaths.push(args[0])
         try {
-          // TODO why is this not working as [method] ???
-          if (method === 'unlink') {
-            return this.volumeFs.promises.unlink.apply(this, args)
+          return await this.volumeFs.promises[method].apply(this, args)
+        } catch (e) {
+          try {
+            await promisify(this.sourceFs.stat)(args[0])
+          } catch (statError) {
+            throw e
           }
-          return this.volumeFs.promises[method].apply(this, args)
-        } catch (e) {}
+        }
         break
       case 'mkdir':
         this.checkWriteAllowed(args[0])
