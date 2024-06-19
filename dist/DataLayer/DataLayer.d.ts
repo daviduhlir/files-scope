@@ -31,6 +31,7 @@ export declare class DataLayer {
     addExternal(path: string, fs: IFs | DataLayerFsApi): void;
     reset(): void;
     get fs(): DataLayerFsApi;
+    getFsProxy(unsafe?: boolean): DataLayerFsApi;
     get promises(): FsPromisesApi;
     dump(): {
         unlinkedPaths: string[];
@@ -39,8 +40,8 @@ export declare class DataLayer {
         };
     };
     commit(ignoreErrors?: boolean): Promise<string[]>;
-    protected solveDirectFsAction(method: string, args: any[]): any;
-    protected solveFsAction(method: string, args: any[]): Promise<any>;
+    protected solveDirectFsAction(method: string, args: any[], unsafe?: boolean): any;
+    protected solveFsAction(method: string, args: any[], unsafe?: boolean): Promise<any>;
     protected getExternalPath(fsPath: string): ExternalFsLink;
     protected checkWriteAllowed(fsPath: string): void;
     protected pathFromReaddirEntry(readdirEntry: any): string;

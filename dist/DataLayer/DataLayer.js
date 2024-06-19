@@ -55,6 +55,9 @@ class DataLayer {
         this.unlinkedPaths = [];
     }
     get fs() {
+        return this.getFsProxy();
+    }
+    getFsProxy(unsafe) {
         return new Proxy(this, {
             get: (target, propKey, receiver) => {
                 const stringPropKey = propKey.toString();
@@ -68,12 +71,12 @@ class DataLayer {
                     return (path, fs) => this.addExternal(path, fs);
                 }
                 else if (constants_2.SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
-                    return (...args) => this.solveDirectFsAction(stringPropKey, args);
+                    return (...args) => this.solveDirectFsAction(stringPropKey, args, unsafe);
                 }
                 else if (constants_2.SUPPORTED_METHODS.includes(stringPropKey)) {
                     return (...args) => {
                         const cb = args.pop();
-                        this.solveFsAction(stringPropKey, args).then(result => cb(null, result), error => cb(error, null));
+                        this.solveFsAction(stringPropKey, args, unsafe).then(result => cb(null, result), error => cb(error, null));
                     };
                 }
                 return undefined;
@@ -157,7 +160,7 @@ class DataLayer {
             return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths);
         });
     }
-    solveDirectFsAction(method, args) {
+    solveDirectFsAction(method, args, unsafe) {
         let external;
         switch (method) {
             case 'statSync':
@@ -198,7 +201,7 @@ class DataLayer {
                 throw new Error(`Method ${method} is not implemented.`);
         }
     }
-    solveFsAction(method, args) {
+    solveFsAction(method, args, unsafe) {
         return __awaiter(this, void 0, void 0, function* () {
             let external;
             switch (method) {
@@ -319,16 +322,22 @@ class DataLayer {
                 }
                 case 'writeFile':
                 case 'createWriteStream':
-                    this.checkWriteAllowed(args[0]);
+                    if (!unsafe) {
+                        this.checkWriteAllowed(args[0]);
+                    }
                     yield this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true });
                     return this.volumeFs.promises[method].apply(this, args);
                 case 'appendFile':
-                    this.checkWriteAllowed(args[0]);
+                    if (!unsafe) {
+                        this.checkWriteAllowed(args[0]);
+                    }
                     yield this.prepareInFs(args[0]);
                     return this.volumeFs.promises.appendFile.apply(this, args);
                 case 'rename':
-                    this.checkWriteAllowed(args[0]);
-                    this.checkWriteAllowed(args[1]);
+                    if (!unsafe) {
+                        this.checkWriteAllowed(args[0]);
+                        this.checkWriteAllowed(args[1]);
+                    }
                     yield this.prepareInFs(args[0]);
                     this.unlinkedPaths.push(args[0]);
                     return this.volumeFs.promises.rename.apply(this, args);
@@ -338,7 +347,9 @@ class DataLayer {
                 case 'unlink':
                 case 'rm':
                 case 'rmdir':
-                    this.checkWriteAllowed(args[0]);
+                    if (!unsafe) {
+                        this.checkWriteAllowed(args[0]);
+                    }
                     this.unlinkedPaths.push(args[0]);
                     try {
                         return yield this.volumeFs.promises[method].apply(this, args);
@@ -353,7 +364,9 @@ class DataLayer {
                     }
                     break;
                 case 'mkdir':
-                    this.checkWriteAllowed(args[0]);
+                    if (!unsafe) {
+                        this.checkWriteAllowed(args[0]);
+                    }
                     return this.volumeFs.promises[method].apply(this, args);
                 default:
                     throw new Error(`Method ${method} is not implemented.`);

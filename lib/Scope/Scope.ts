@@ -89,7 +89,10 @@ export class Scope {
 
     // data layer factory is just only for root scope
     const dataLayer = parent
-      ? new DataLayer(parent.fs, [...parent.writeAllowedPaths, ...dependeciesList.filter(key => key.writeAccess).map(key => key.path)])
+      ? new DataLayer(
+          parent.getFsProxy(true),
+          dependeciesList.filter(key => key.writeAccess).map(key => key.path),
+        )
       : this.createDatalayer(dependeciesList)
 
     // inject fs to dependecies

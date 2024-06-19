@@ -67,6 +67,13 @@ export class DataLayer {
    * Get fs api
    */
   get fs(): DataLayerFsApi {
+    return this.getFsProxy()
+  }
+
+  /**
+   * Get fs api without write checks
+   */
+  getFsProxy(unsafe?: boolean): DataLayerFsApi {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         const stringPropKey = propKey.toString()
@@ -77,11 +84,11 @@ export class DataLayer {
         } else if (stringPropKey === 'addExternal') {
           return (path: string, fs) => this.addExternal(path, fs)
         } else if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
-          return (...args) => this.solveDirectFsAction(stringPropKey, args)
+          return (...args) => this.solveDirectFsAction(stringPropKey, args, unsafe)
         } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
           return (...args) => {
             const cb = args.pop()
-            this.solveFsAction(stringPropKey, args).then(
+            this.solveFsAction(stringPropKey, args, unsafe).then(
               result => cb(null, result),
               error => cb(error, null),
             )
@@ -180,7 +187,7 @@ export class DataLayer {
   /**
    * Solve direct fs actions
    */
-  protected solveDirectFsAction(method: string, args: any[]) {
+  protected solveDirectFsAction(method: string, args: any[], unsafe?: boolean) {
     let external: ExternalFsLink
     switch (method) {
       case 'statSync':
@@ -223,7 +230,7 @@ export class DataLayer {
   /**
    * Solve fs actions, that is called from fs proxy
    */
-  protected async solveFsAction(method: string, args: any[]) {
+  protected async solveFsAction(method: string, args: any[], unsafe?: boolean) {
     let external: ExternalFsLink
     switch (method) {
       // Access file in systemFS
@@ -281,7 +288,6 @@ export class DataLayer {
             return false
           }
         }
-
         try {
           return (await this.volumeFs.promises.stat(args[0])).isDirectory()
         } catch (e) {
@@ -344,16 +350,22 @@ export class DataLayer {
       // write oprations
       case 'writeFile':
       case 'createWriteStream':
-        this.checkWriteAllowed(args[0])
+        if (!unsafe) {
+          this.checkWriteAllowed(args[0])
+        }
         await this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true })
         return this.volumeFs.promises[method].apply(this, args)
       case 'appendFile':
-        this.checkWriteAllowed(args[0])
+        if (!unsafe) {
+          this.checkWriteAllowed(args[0])
+        }
         await this.prepareInFs(args[0])
         return this.volumeFs.promises.appendFile.apply(this, args)
       case 'rename':
-        this.checkWriteAllowed(args[0])
-        this.checkWriteAllowed(args[1])
+        if (!unsafe) {
+          this.checkWriteAllowed(args[0])
+          this.checkWriteAllowed(args[1])
+        }
         await this.prepareInFs(args[0])
         this.unlinkedPaths.push(args[0])
         return this.volumeFs.promises.rename.apply(this, args)
@@ -363,7 +375,9 @@ export class DataLayer {
       case 'unlink':
       case 'rm':
       case 'rmdir':
-        this.checkWriteAllowed(args[0])
+        if (!unsafe) {
+          this.checkWriteAllowed(args[0])
+        }
         this.unlinkedPaths.push(args[0])
         try {
           return await this.volumeFs.promises[method].apply(this, args)
@@ -376,7 +390,9 @@ export class DataLayer {
         }
         break
       case 'mkdir':
-        this.checkWriteAllowed(args[0])
+        if (!unsafe) {
+          this.checkWriteAllowed(args[0])
+        }
         return this.volumeFs.promises[method].apply(this, args)
       default:
         throw new Error(`Method ${method} is not implemented.`)
