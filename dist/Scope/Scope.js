@@ -24,6 +24,7 @@ exports.DEFAULT_SCOPE_OPTIONS = {
     beforeRootScopeOpen: undefined,
     afterRootScopeDone: undefined,
     readonly: false,
+    ignoreCommitErrors: true
 };
 class Scope {
     constructor(workingDir, options) {
@@ -84,11 +85,11 @@ class Scope {
                     }
                     catch (e) {
                         if (this.options.commitIfFail) {
-                            changedPaths = yield dataLayer.commit();
+                            changedPaths = yield dataLayer.commit(this.options.ignoreCommitErrors);
                         }
                         throw e;
                     }
-                    changedPaths = yield dataLayer.commit();
+                    changedPaths = yield dataLayer.commit(this.options.ignoreCommitErrors);
                     return result;
                 }), this.options.maxLockingTime);
             }));

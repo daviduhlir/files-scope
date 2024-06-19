@@ -100,7 +100,7 @@ class DataLayer {
             nodes,
         };
     }
-    commit(ignoreErrors) {
+    commit(ignoreErrors = true) {
         return __awaiter(this, void 0, void 0, function* () {
             const dumped = this.dump();
             for (const unlinkedPath of dumped.unlinkedPaths) {
@@ -342,7 +342,7 @@ class DataLayer {
                     this.unlinkedPaths.push(args[0]);
                     try {
                         if (method === 'unlink') {
-                            return yield this.volumeFs.promises.unlink.apply(this, args);
+                            return this.volumeFs.promises.unlink.apply(this, args);
                         }
                         return this.volumeFs.promises[method].apply(this, args);
                     }

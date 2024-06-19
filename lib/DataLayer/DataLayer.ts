@@ -123,7 +123,7 @@ export class DataLayer {
   /**
    * Commit files changes into FS system
    */
-  async commit(ignoreErrors?: boolean) {
+  async commit(ignoreErrors: boolean = true) {
     const dumped = this.dump()
 
     for (const unlinkedPath of dumped.unlinkedPaths) {
@@ -368,7 +368,7 @@ export class DataLayer {
         try {
           // TODO why is this not working as [method] ???
           if (method === 'unlink') {
-            return await this.volumeFs.promises.unlink.apply(this, args)
+            return this.volumeFs.promises.unlink.apply(this, args)
           }
           return this.volumeFs.promises[method].apply(this, args)
         } catch (e) {}

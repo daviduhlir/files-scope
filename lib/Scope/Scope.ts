@@ -19,6 +19,7 @@ export interface ScopeOptions {
   afterScopeDone?: (changedPaths: string[]) => Promise<void>
   readonly?: boolean
   handlerWrapper?: <T>(actionCaller: () => Promise<T>) => Promise<T>
+  ignoreCommitErrors?: boolean
 }
 
 export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
@@ -27,6 +28,7 @@ export const DEFAULT_SCOPE_OPTIONS: ScopeOptions = {
   beforeRootScopeOpen: undefined,
   afterRootScopeDone: undefined,
   readonly: false,
+  ignoreCommitErrors: true
 }
 
 export class Scope {
@@ -131,11 +133,11 @@ export class Scope {
             }
           } catch (e) {
             if (this.options.commitIfFail) {
-              changedPaths = await dataLayer.commit()
+              changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors)
             }
             throw e
           }
-          changedPaths = await dataLayer.commit()
+          changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors)
           return result
         },
         this.options.maxLockingTime,
