@@ -39,7 +39,6 @@ describe('Commit scope tests', function() {
       await dependecies.a.fs.unlink()
     })
 
-    /*
     let stat
     let error
     try {
@@ -49,7 +48,6 @@ describe('Commit scope tests', function() {
     }
 
     assert(!stat && error.message === "ENOENT: no such file or directory, stat './temp/dir/file.txt'", 'File should be removed on disk')
-    */
   })
 
   it('Created folder', async function() {

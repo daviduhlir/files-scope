@@ -20,3 +20,4 @@ exports.SUPPORTED_METHODS = [
 ];
 exports.SUPPORTED_DIRECT_METHODS = ['createReadStream', 'createWriteStream', 'statSync'];
 exports.SUPPORTED_FILE_METHODS = ['access', 'appendFile', 'copyFile', 'readFile', 'rename', 'stat', 'unlink', 'writeFile', 'fileExists'];
+//# sourceMappingURL=constants.js.map
