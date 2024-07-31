@@ -32,4 +32,3 @@ exports.SUPPORTED_FILE_METHODS = [
     'writeFile',
     'fileExists',
 ];
-//# sourceMappingURL=constants.js.map

@@ -160,12 +160,12 @@ describe('Basic scope tests', function() {
     await FileScope.prepare('./tests').open({
       root: Dependency.writeFileAccess('/'),
     }, async (fs, dependecies) => {
-      const content = await fs.promises.readFile('/assets/archive.tgz')
+      const content = await fs.promises.readFile('/assets/archive')
       sizeBefore = content.byteLength
       await fs.promises.writeFile('/temp/archive.tgz', content)
     })
 
-    const stat = await systemFs.stat('./tests/temp/archive.tgz')
+    const stat = await systemFs.stat('./tests/temp/archive')
     assert(sizeBefore === stat.size, 'Size have to be same')
   })
 })
