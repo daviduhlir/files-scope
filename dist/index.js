@@ -16,4 +16,3 @@ __exportStar(require("./DataLayer/DataLayer"), exports);
 __exportStar(require("./FileScope"), exports);
 __exportStar(require("./interfaces"), exports);
 __exportStar(require("./utils"), exports);
-//# sourceMappingURL=index.js.map

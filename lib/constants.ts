@@ -19,4 +19,15 @@ export const SUPPORTED_METHODS = [
 
 export const SUPPORTED_DIRECT_METHODS = ['createReadStream', 'createWriteStream', 'statSync']
 
-export const SUPPORTED_FILE_METHODS = ['accessInSystemFs', 'access', 'appendFile', 'copyFile', 'readFile', 'rename', 'stat', 'unlink', 'writeFile', 'fileExists']
+export const SUPPORTED_FILE_METHODS = [
+  'accessInSystemFs',
+  'access',
+  'appendFile',
+  'copyFile',
+  'readFile',
+  'rename',
+  'stat',
+  'unlink',
+  'writeFile',
+  'fileExists',
+]

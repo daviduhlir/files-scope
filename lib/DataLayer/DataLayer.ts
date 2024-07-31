@@ -38,9 +38,9 @@ export class DataLayer {
   protected volume = new Volume()
   protected volumeFs: IFs
   protected unlinkedPaths: string[] = []
+  protected changedPaths: string[] = []
   protected tempFiles: string[] = []
 
-  // /Users/daviduhlir/Documents/Work/zenoo/hub-design-studio/node_modules/@zenoo/hub-design-studio-core/build/graphql/utils/index.less
   protected externals: ExternalFsLink[] = []
 
   constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[]) {
@@ -61,6 +61,7 @@ export class DataLayer {
     this.volume = new Volume()
     this.volumeFs = createFsFromVolume(this.volume)
     this.unlinkedPaths = []
+    this.changedPaths = []
   }
 
   /**
@@ -122,6 +123,7 @@ export class DataLayer {
     const nodesPaths = Object.keys(nodes)
     const unlinkedPaths = this.unlinkedPaths.filter(unlinkedPath => !nodesPaths.find(nodePath => nodePath.startsWith(unlinkedPath)))
     return {
+      changedPaths: this.changedPaths,
       unlinkedPaths,
       nodes,
     }
@@ -163,7 +165,8 @@ export class DataLayer {
           isDirectory = true
         }
         if (isDirectory) {
-          await promisify(this.sourceFs.writeFile)(nodePath, node)
+          const content = await this.volumeFs.promises.readFile(nodePath)
+          await promisify(this.sourceFs.writeFile as any)(nodePath, content)
         } else {
           if (!ignoreErrors) {
             throw new Error(`Can not write to ${nodePath}`)
@@ -397,6 +400,16 @@ export class DataLayer {
       default:
         throw new Error(`Method ${method} is not implemented.`)
     }
+  }
+
+  /**
+   * Changed paths
+   */
+  protected changedPath(fsPath: string) {
+    if (this.changedPaths.includes(fsPath)) {
+      return
+    }
+    this.changedPaths.push(fsPath)
   }
 
   /**

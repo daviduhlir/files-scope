@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -35,72 +44,75 @@ class Scope {
     createDatalayer(dependecies) {
         return null;
     }
-    async open(dependeciesMap, handler) {
-        const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
-        if (this.options.readonly && dependeciesList.some(d => d.writeAccess)) {
-            throw new Error('This scope has only read access');
-        }
-        const stack = [...(this.stackStorage.getStore() || [])];
-        const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1].layer : undefined;
-        const allParentalMutexes = stack.map(item => item.mutexKeys).flat();
-        const dataLayer = parent
-            ? new DataLayer_1.DataLayer(parent.getFsProxy(true), dependeciesList.filter(key => key.writeAccess).map(key => key.path))
-            : this.createDatalayer(dependeciesList);
-        dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
-        dependeciesList.forEach(dependency => dependency.initialize());
-        const mutexKeys = dependeciesList
-            .filter(key => key.needsLock())
-            .map(key => ({
-            key: helpers_1.concatMutexKey(this.options.mutexPrefix, this.workingDir, key.path),
-            singleAccess: key.writeAccess,
-        }))
-            .filter(lock => !allParentalMutexes.find(item => helpers_1.isSubpath(lock.key, item.key)));
-        let changedPaths = [];
-        const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () => Scope.lockScope(mutexKeys, dependeciesMap, async () => {
-            if (!parent && this.options.beforeRootScopeOpen) {
-                await this.options.beforeRootScopeOpen();
+    open(dependeciesMap, handler) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dependeciesList = Object.keys(dependeciesMap).reduce((acc, key) => [...acc, dependeciesMap[key]], []);
+            if (this.options.readonly && dependeciesList.some(d => d.writeAccess)) {
+                throw new Error('This scope has only read access');
             }
-            if (this.options.beforeScopeOpen) {
-                await this.options.beforeScopeOpen();
+            const stack = [...(this.stackStorage.getStore() || [])];
+            const parent = (stack === null || stack === void 0 ? void 0 : stack.length) ? stack[stack.length - 1].layer : undefined;
+            const allParentalMutexes = stack.map(item => item.mutexKeys).flat();
+            const dataLayer = parent
+                ? new DataLayer_1.DataLayer(parent.getFsProxy(true), dependeciesList.filter(key => key.writeAccess).map(key => key.path))
+                : this.createDatalayer(dependeciesList);
+            dependeciesList.forEach(dependency => dependency[Dependency_1.dependencyFsInjector](dataLayer));
+            dependeciesList.forEach(dependency => dependency.initialize());
+            const mutexKeys = dependeciesList
+                .filter(key => key.needsLock())
+                .map(key => ({
+                key: helpers_1.concatMutexKey(this.options.mutexPrefix, this.workingDir, key.path),
+                singleAccess: key.writeAccess,
+            }))
+                .filter(lock => !allParentalMutexes.find(item => helpers_1.isSubpath(lock.key, item.key)));
+            let changedPaths = [];
+            const result = yield this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], () => __awaiter(this, void 0, void 0, function* () {
+                return Scope.lockScope(mutexKeys, dependeciesMap, () => __awaiter(this, void 0, void 0, function* () {
+                    if (!parent && this.options.beforeRootScopeOpen) {
+                        yield this.options.beforeRootScopeOpen();
+                    }
+                    if (this.options.beforeScopeOpen) {
+                        yield this.options.beforeScopeOpen();
+                    }
+                    let result;
+                    try {
+                        if (this.options.handlerWrapper) {
+                            result = yield this.options.handlerWrapper(() => handler(dataLayer.fs, dependeciesMap));
+                        }
+                        else {
+                            result = yield handler(dataLayer.fs, dependeciesMap);
+                        }
+                    }
+                    catch (e) {
+                        if (this.options.commitIfFail) {
+                            changedPaths = yield dataLayer.commit(this.options.ignoreCommitErrors);
+                        }
+                        throw e;
+                    }
+                    changedPaths = yield dataLayer.commit(this.options.ignoreCommitErrors);
+                    return result;
+                }), this.options.maxLockingTime);
+            }));
+            if (this.options.afterScopeDone) {
+                yield this.options.afterScopeDone(changedPaths);
             }
-            let result;
-            try {
-                if (this.options.handlerWrapper) {
-                    result = await this.options.handlerWrapper(() => handler(dataLayer.fs, dependeciesMap));
-                }
-                else {
-                    result = await handler(dataLayer.fs, dependeciesMap);
-                }
+            if (!parent && this.options.afterRootScopeDone) {
+                yield this.options.afterRootScopeDone(changedPaths);
             }
-            catch (e) {
-                if (this.options.commitIfFail) {
-                    changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors);
-                }
-                throw e;
-            }
-            changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors);
             return result;
-        }, this.options.maxLockingTime));
-        if (this.options.afterScopeDone) {
-            await this.options.afterScopeDone(changedPaths);
-        }
-        if (!parent && this.options.afterRootScopeDone) {
-            await this.options.afterRootScopeDone(changedPaths);
-        }
-        return result;
+        });
     }
     static lockScope(mutexes, dependeciesMap, handler, maxLockingTime) {
         const m = mutexes.pop();
         if (!m) {
             return handler();
         }
-        return mutex_1.SharedMutex.lockAccess(m.key, async () => {
+        return mutex_1.SharedMutex.lockAccess(m.key, () => __awaiter(this, void 0, void 0, function* () {
             if (mutexes.length) {
                 return this.lockScope(mutexes, dependeciesMap, handler, maxLockingTime);
             }
             return handler();
-        }, m.singleAccess, maxLockingTime);
+        }), m.singleAccess, maxLockingTime);
     }
 }
 exports.Scope = Scope;
-//# sourceMappingURL=Scope.js.map

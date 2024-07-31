@@ -45,7 +45,7 @@ export interface DataLayerCallbackApi {
         encoding?: BufferEncoding | null | undefined;
         withFileTypes: true;
     } | BufferEncoding | undefined | null, callback: (err: NodeJS.ErrnoException | null, data: Dirent[]) => void): any;
-    readFile(path: string, callback: (err: NodeJS.ErrnoException | null, data: string | Buffer) => void): any;
+    readFile(path: string, callback: (err: NodeJS.ErrnoException | null, data: Buffer) => void): any;
     readFile(path: string, options: ({
         encoding?: BufferEncoding | undefined | null;
         flag?: string | undefined;
@@ -71,13 +71,14 @@ export interface DataLayerCallbackApi {
     promises: DataLayerPromiseApi;
 }
 export interface DataLayerPromiseSingleFileApi {
+    accessInSystemFs(systemTempPath: string): Promise<string>;
     access(mode: number | undefined): Promise<void>;
     access(): Promise<void>;
     appendFile(data: string | Uint8Array): Promise<void>;
     appendFile(data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
     copyFile(dest: string): Promise<void>;
     copyFile(dest: string, flags: number): Promise<void>;
-    readFile(): Promise<string | Buffer>;
+    readFile(): Promise<Buffer>;
     readFile(options: ({
         encoding?: BufferEncoding | undefined | null;
         flag?: string | undefined;
@@ -126,7 +127,7 @@ export interface DataLayerPromiseApi {
         encoding?: BufferEncoding | null | undefined;
         withFileTypes: true;
     } | BufferEncoding | undefined | null): Promise<Dirent[]>;
-    readFile(path: string): Promise<string | Buffer>;
+    readFile(path: string): Promise<Buffer>;
     readFile(path: string, options: ({
         encoding?: BufferEncoding | undefined | null;
         flag?: string | undefined;

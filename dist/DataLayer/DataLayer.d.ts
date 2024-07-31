@@ -25,6 +25,7 @@ export declare class DataLayer {
     protected volume: import("memfs/lib/volume").Volume;
     protected volumeFs: IFs;
     protected unlinkedPaths: string[];
+    protected changedPaths: string[];
     protected tempFiles: string[];
     protected externals: ExternalFsLink[];
     constructor(sourceFs: IFs | DataLayerFsApi, writeAllowedPaths?: string[]);
@@ -34,6 +35,7 @@ export declare class DataLayer {
     getFsProxy(unsafe?: boolean): DataLayerFsApi;
     get promises(): FsPromisesApi;
     dump(): {
+        changedPaths: string[];
         unlinkedPaths: string[];
         nodes: {
             [path: string]: string | Buffer;
@@ -42,6 +44,7 @@ export declare class DataLayer {
     commit(ignoreErrors?: boolean): Promise<string[]>;
     protected solveDirectFsAction(method: string, args: any[], unsafe?: boolean): any;
     protected solveFsAction(method: string, args: any[], unsafe?: boolean): Promise<any>;
+    protected changedPath(fsPath: string): void;
     protected getExternalPath(fsPath: string): ExternalFsLink;
     protected checkWriteAllowed(fsPath: string): void;
     protected pathFromReaddirEntry(readdirEntry: any): string;
