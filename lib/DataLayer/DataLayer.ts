@@ -132,7 +132,7 @@ export class DataLayer {
   /**
    * Commit files changes into FS system
    */
-  async commit(ignoreErrors: boolean = true) {
+  async commit(ignoreErrors: boolean = true, binaryMode: boolean = true) {
     const dumped = this.dump()
 
     for (const unlinkedPath of dumped.unlinkedPaths) {
@@ -165,8 +165,12 @@ export class DataLayer {
           isDirectory = true
         }
         if (isDirectory) {
-          const content = await this.volumeFs.promises.readFile(nodePath)
-          await promisify(this.sourceFs.writeFile as any)(nodePath, content)
+          if (binaryMode) {
+            const content = await this.volumeFs.promises.readFile(nodePath)
+            await promisify(this.sourceFs.writeFile as any)(nodePath, content)
+          } else {
+            await promisify(this.sourceFs.writeFile as any)(nodePath, node)
+          }
         } else {
           if (!ignoreErrors) {
             throw new Error(`Can not write to ${nodePath}`)

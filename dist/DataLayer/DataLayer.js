@@ -18,15 +18,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataLayer = void 0;
 const memfs_1 = require("memfs");
@@ -106,63 +97,66 @@ class DataLayer {
             nodes,
         };
     }
-    commit(ignoreErrors = true) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const dumped = this.dump();
-            for (const unlinkedPath of dumped.unlinkedPaths) {
+    async commit(ignoreErrors = true, binaryMode = true) {
+        const dumped = this.dump();
+        for (const unlinkedPath of dumped.unlinkedPaths) {
+            try {
+                const stat = (await util_1.promisify(this.sourceFs.stat)(unlinkedPath));
+                if (stat.isDirectory()) {
+                    await util_1.promisify(this.sourceFs.rm)(unlinkedPath, { recursive: true });
+                }
+                else {
+                    await util_1.promisify(this.sourceFs.unlink)(unlinkedPath);
+                }
+            }
+            catch (e) {
+                if (!ignoreErrors) {
+                    throw new Error(`Can not unlink ${unlinkedPath}`);
+                }
+            }
+        }
+        for (const nodePath in dumped.nodes) {
+            const node = dumped.nodes[nodePath];
+            if (node === null) {
+                await util_1.promisify(this.sourceFs.mkdir)(nodePath, { recursive: true });
+            }
+            else if (typeof node === 'string' || node instanceof Buffer) {
+                const destPath = path.dirname(nodePath);
+                let isDirectory = false;
                 try {
-                    const stat = (yield util_1.promisify(this.sourceFs.stat)(unlinkedPath));
-                    if (stat.isDirectory()) {
-                        yield util_1.promisify(this.sourceFs.rm)(unlinkedPath, { recursive: true });
-                    }
-                    else {
-                        yield util_1.promisify(this.sourceFs.unlink)(unlinkedPath);
-                    }
+                    isDirectory = (await util_1.promisify(this.sourceFs.stat)(destPath)).isDirectory();
                 }
                 catch (e) {
+                    await util_1.promisify(this.sourceFs.mkdir)(destPath, { recursive: true });
+                    isDirectory = true;
+                }
+                if (isDirectory) {
+                    if (binaryMode) {
+                        const content = await this.volumeFs.promises.readFile(nodePath);
+                        await util_1.promisify(this.sourceFs.writeFile)(nodePath, content);
+                    }
+                    else {
+                        await util_1.promisify(this.sourceFs.writeFile)(nodePath, node);
+                    }
+                }
+                else {
                     if (!ignoreErrors) {
-                        throw new Error(`Can not unlink ${unlinkedPath}`);
+                        throw new Error(`Can not write to ${nodePath}`);
                     }
                 }
             }
-            for (const nodePath in dumped.nodes) {
-                const node = dumped.nodes[nodePath];
-                if (node === null) {
-                    yield util_1.promisify(this.sourceFs.mkdir)(nodePath, { recursive: true });
-                }
-                else if (typeof node === 'string' || node instanceof Buffer) {
-                    const destPath = path.dirname(nodePath);
-                    let isDirectory = false;
-                    try {
-                        isDirectory = (yield util_1.promisify(this.sourceFs.stat)(destPath)).isDirectory();
-                    }
-                    catch (e) {
-                        yield util_1.promisify(this.sourceFs.mkdir)(destPath, { recursive: true });
-                        isDirectory = true;
-                    }
-                    if (isDirectory) {
-                        const content = yield this.volumeFs.promises.readFile(nodePath);
-                        yield util_1.promisify(this.sourceFs.writeFile)(nodePath, content);
-                    }
-                    else {
-                        if (!ignoreErrors) {
-                            throw new Error(`Can not write to ${nodePath}`);
-                        }
-                    }
-                }
+        }
+        for (const tempFile of this.tempFiles) {
+            try {
+                await fs_1.promises.unlink(tempFile);
             }
-            for (const tempFile of this.tempFiles) {
-                try {
-                    yield fs_1.promises.unlink(tempFile);
-                }
-                catch (e) {
-                    console.log(`[FILE-SCOPE] Remove temporary path on path ${tempFile} failed`, e);
-                }
+            catch (e) {
+                console.log(`[FILE-SCOPE] Remove temporary path on path ${tempFile} failed`, e);
             }
-            this.tempFiles = [];
-            this.reset();
-            return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths);
-        });
+        }
+        this.tempFiles = [];
+        this.reset();
+        return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths);
     }
     solveDirectFsAction(method, args, unsafe) {
         let external;
@@ -205,177 +199,175 @@ class DataLayer {
                 throw new Error(`Method ${method} is not implemented.`);
         }
     }
-    solveFsAction(method, args, unsafe) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let external;
-            switch (method) {
-                case 'accessInSystemFs': {
-                    const srcPath = args[0];
-                    const dstTempPath = args[1];
-                    if (!(yield this.fs.promises.fileExists(srcPath))) {
-                        throw new Error(`No such file on path ${srcPath}`);
-                    }
-                    const content = yield this.fs.promises.readFile(srcPath);
-                    const dstPath = path.resolve(dstTempPath, helpers_1.randomHash());
-                    yield fs_1.promises.writeFile(dstPath, content);
-                    this.tempFiles.push(dstPath);
-                    return dstPath;
+    async solveFsAction(method, args, unsafe) {
+        let external;
+        switch (method) {
+            case 'accessInSystemFs': {
+                const srcPath = args[0];
+                const dstTempPath = args[1];
+                if (!(await this.fs.promises.fileExists(srcPath))) {
+                    throw new Error(`No such file on path ${srcPath}`);
                 }
-                case 'copyFromFs':
-                    const srcPath = args[0];
-                    const externalFs = args[1];
-                    const dstPath = args[2];
-                    const content = yield externalFs.promises.readFile(srcPath);
-                    return this.fs.promises.writeFile(dstPath, content);
-                case 'fileExists':
-                    external = this.getExternalPath(args[0]);
-                    if (external) {
-                        try {
-                            yield external.fs.promises.access(args[0], constants_1.F_OK);
-                            return true;
-                        }
-                        catch (e) {
-                            return false;
-                        }
-                    }
+                const content = await this.fs.promises.readFile(srcPath);
+                const dstPath = path.resolve(dstTempPath, helpers_1.randomHash());
+                await fs_1.promises.writeFile(dstPath, content);
+                this.tempFiles.push(dstPath);
+                return dstPath;
+            }
+            case 'copyFromFs':
+                const srcPath = args[0];
+                const externalFs = args[1];
+                const dstPath = args[2];
+                const content = await externalFs.promises.readFile(srcPath);
+                return this.fs.promises.writeFile(dstPath, content);
+            case 'fileExists':
+                external = this.getExternalPath(args[0]);
+                if (external) {
                     try {
-                        yield this.volumeFs.promises.access(args[0], constants_1.F_OK);
+                        await external.fs.promises.access(args[0], constants_1.F_OK);
                         return true;
                     }
                     catch (e) {
-                        try {
-                            if (this.checkIsUnlinked(args[0])) {
-                                throw new Error(`No such file on path ${args[0]}`);
-                            }
-                            yield util_1.promisify(this.sourceFs.access)(args[0], constants_1.F_OK);
-                            return true;
-                        }
-                        catch (e) { }
+                        return false;
                     }
-                    return false;
-                case 'directoryExists':
-                    external = this.getExternalPath(args[0]);
-                    if (external) {
-                        try {
-                            return (yield external.fs.promises.stat(args[0])).isDirectory();
-                        }
-                        catch (e) {
-                            return false;
-                        }
-                    }
+                }
+                try {
+                    await this.volumeFs.promises.access(args[0], constants_1.F_OK);
+                    return true;
+                }
+                catch (e) {
                     try {
-                        return (yield this.volumeFs.promises.stat(args[0])).isDirectory();
-                    }
-                    catch (e) {
-                        try {
-                            if (this.checkIsUnlinked(args[0])) {
-                                throw new Error(`No such directory on path ${args[0]}`);
-                            }
-                            if ((yield util_1.promisify(this.sourceFs.stat)(args[0])).isDirectory()) {
-                                return true;
-                            }
-                        }
-                        catch (e) { }
-                    }
-                    return false;
-                case 'readFile':
-                case 'lstat':
-                case 'stat':
-                case 'access':
-                case 'createReadStream':
-                    external = this.getExternalPath(args[0]);
-                    if (external) {
-                        return external.fs.promises[method].apply(this, args);
-                    }
-                    try {
-                        return yield this.volumeFs.promises[method].apply(this, args);
-                    }
-                    catch (e) {
                         if (this.checkIsUnlinked(args[0])) {
                             throw new Error(`No such file on path ${args[0]}`);
                         }
-                        return util_1.promisify(this.sourceFs[method]).apply(this, args);
-                    }
-                case 'readdir': {
-                    external = this.getExternalPath(args[0]);
-                    if (external) {
-                        return external.fs.promises.readdir.apply(this, args);
-                    }
-                    let memResult = [];
-                    try {
-                        memResult = yield this.volumeFs.promises.readdir.apply(this, args);
+                        await util_1.promisify(this.sourceFs.access)(args[0], constants_1.F_OK);
+                        return true;
                     }
                     catch (e) { }
-                    let fsResult = [];
-                    try {
-                        const wasUnlinkedInFs = this.checkIsUnlinked(args[0]);
-                        fsResult = wasUnlinkedInFs ? [] : yield util_1.promisify(this.sourceFs.readdir).apply(this, args);
-                    }
-                    catch (e) { }
-                    const result = new Map();
-                    for (const dirent of fsResult) {
-                        const direntPath = this.pathFromReaddirEntry(dirent);
-                        if (!this.checkIsUnlinked(path.resolve(args[0], direntPath))) {
-                            result.set(direntPath, dirent);
-                        }
-                    }
-                    for (const dirent of memResult) {
-                        result.set(this.pathFromReaddirEntry(dirent), dirent);
-                    }
-                    return this.sortedArrayFromReaddirResult(result);
                 }
-                case 'writeFile':
-                case 'createWriteStream':
-                    if (!unsafe) {
-                        this.checkWriteAllowed(args[0]);
-                    }
-                    yield this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true });
-                    return this.volumeFs.promises[method].apply(this, args);
-                case 'appendFile':
-                    if (!unsafe) {
-                        this.checkWriteAllowed(args[0]);
-                    }
-                    yield this.prepareInFs(args[0]);
-                    return this.volumeFs.promises.appendFile.apply(this, args);
-                case 'rename':
-                    if (!unsafe) {
-                        this.checkWriteAllowed(args[0]);
-                        this.checkWriteAllowed(args[1]);
-                    }
-                    yield this.prepareInFs(args[0]);
-                    this.unlinkedPaths.push(args[0]);
-                    return this.volumeFs.promises.rename.apply(this, args);
-                case 'copyFile':
-                    yield this.prepareInFs(args[0]);
-                    return this.volumeFs.promises.copyFile.apply(this, args);
-                case 'unlink':
-                case 'rm':
-                case 'rmdir':
-                    if (!unsafe) {
-                        this.checkWriteAllowed(args[0]);
-                    }
-                    this.unlinkedPaths.push(args[0]);
+                return false;
+            case 'directoryExists':
+                external = this.getExternalPath(args[0]);
+                if (external) {
                     try {
-                        return yield this.volumeFs.promises[method].apply(this, args);
+                        return (await external.fs.promises.stat(args[0])).isDirectory();
                     }
                     catch (e) {
-                        try {
-                            yield util_1.promisify(this.sourceFs.stat)(args[0]);
+                        return false;
+                    }
+                }
+                try {
+                    return (await this.volumeFs.promises.stat(args[0])).isDirectory();
+                }
+                catch (e) {
+                    try {
+                        if (this.checkIsUnlinked(args[0])) {
+                            throw new Error(`No such directory on path ${args[0]}`);
                         }
-                        catch (statError) {
-                            throw e;
+                        if ((await util_1.promisify(this.sourceFs.stat)(args[0])).isDirectory()) {
+                            return true;
                         }
                     }
-                    break;
-                case 'mkdir':
-                    if (!unsafe) {
-                        this.checkWriteAllowed(args[0]);
+                    catch (e) { }
+                }
+                return false;
+            case 'readFile':
+            case 'lstat':
+            case 'stat':
+            case 'access':
+            case 'createReadStream':
+                external = this.getExternalPath(args[0]);
+                if (external) {
+                    return external.fs.promises[method].apply(this, args);
+                }
+                try {
+                    return await this.volumeFs.promises[method].apply(this, args);
+                }
+                catch (e) {
+                    if (this.checkIsUnlinked(args[0])) {
+                        throw new Error(`No such file on path ${args[0]}`);
                     }
-                    return this.volumeFs.promises[method].apply(this, args);
-                default:
-                    throw new Error(`Method ${method} is not implemented.`);
+                    return util_1.promisify(this.sourceFs[method]).apply(this, args);
+                }
+            case 'readdir': {
+                external = this.getExternalPath(args[0]);
+                if (external) {
+                    return external.fs.promises.readdir.apply(this, args);
+                }
+                let memResult = [];
+                try {
+                    memResult = await this.volumeFs.promises.readdir.apply(this, args);
+                }
+                catch (e) { }
+                let fsResult = [];
+                try {
+                    const wasUnlinkedInFs = this.checkIsUnlinked(args[0]);
+                    fsResult = wasUnlinkedInFs ? [] : await util_1.promisify(this.sourceFs.readdir).apply(this, args);
+                }
+                catch (e) { }
+                const result = new Map();
+                for (const dirent of fsResult) {
+                    const direntPath = this.pathFromReaddirEntry(dirent);
+                    if (!this.checkIsUnlinked(path.resolve(args[0], direntPath))) {
+                        result.set(direntPath, dirent);
+                    }
+                }
+                for (const dirent of memResult) {
+                    result.set(this.pathFromReaddirEntry(dirent), dirent);
+                }
+                return this.sortedArrayFromReaddirResult(result);
             }
-        });
+            case 'writeFile':
+            case 'createWriteStream':
+                if (!unsafe) {
+                    this.checkWriteAllowed(args[0]);
+                }
+                await this.volumeFs.promises.mkdir(path.dirname(args[0]), { recursive: true });
+                return this.volumeFs.promises[method].apply(this, args);
+            case 'appendFile':
+                if (!unsafe) {
+                    this.checkWriteAllowed(args[0]);
+                }
+                await this.prepareInFs(args[0]);
+                return this.volumeFs.promises.appendFile.apply(this, args);
+            case 'rename':
+                if (!unsafe) {
+                    this.checkWriteAllowed(args[0]);
+                    this.checkWriteAllowed(args[1]);
+                }
+                await this.prepareInFs(args[0]);
+                this.unlinkedPaths.push(args[0]);
+                return this.volumeFs.promises.rename.apply(this, args);
+            case 'copyFile':
+                await this.prepareInFs(args[0]);
+                return this.volumeFs.promises.copyFile.apply(this, args);
+            case 'unlink':
+            case 'rm':
+            case 'rmdir':
+                if (!unsafe) {
+                    this.checkWriteAllowed(args[0]);
+                }
+                this.unlinkedPaths.push(args[0]);
+                try {
+                    return await this.volumeFs.promises[method].apply(this, args);
+                }
+                catch (e) {
+                    try {
+                        await util_1.promisify(this.sourceFs.stat)(args[0]);
+                    }
+                    catch (statError) {
+                        throw e;
+                    }
+                }
+                break;
+            case 'mkdir':
+                if (!unsafe) {
+                    this.checkWriteAllowed(args[0]);
+                }
+                return this.volumeFs.promises[method].apply(this, args);
+            default:
+                throw new Error(`Method ${method} is not implemented.`);
+        }
     }
     changedPath(fsPath) {
         if (this.changedPaths.includes(fsPath)) {
@@ -406,29 +398,27 @@ class DataLayer {
         }
         return array;
     }
-    prepareInFs(fsPath, destinationPath) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!destinationPath) {
-                destinationPath = fsPath;
+    async prepareInFs(fsPath, destinationPath) {
+        if (!destinationPath) {
+            destinationPath = fsPath;
+        }
+        try {
+            ;
+            (await this.volumeFs.promises.stat(destinationPath)).isFile();
+        }
+        catch (e) {
+            if (this.checkIsUnlinked(fsPath)) {
+                return;
             }
             try {
-                ;
-                (yield this.volumeFs.promises.stat(destinationPath)).isFile();
+                const content = (await util_1.promisify(this.sourceFs.readFile)(fsPath));
+                await this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
+                await this.volumeFs.promises.writeFile(destinationPath, content);
             }
             catch (e) {
-                if (this.checkIsUnlinked(fsPath)) {
-                    return;
-                }
-                try {
-                    const content = (yield util_1.promisify(this.sourceFs.readFile)(fsPath));
-                    yield this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
-                    yield this.volumeFs.promises.writeFile(destinationPath, content);
-                }
-                catch (e) {
-                    yield this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
-                }
+                await this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
             }
-        });
+        }
     }
     extractAllPaths(obj, prefix = '', accumulator = {}) {
         Object.keys(obj).forEach(name => {
@@ -451,3 +441,4 @@ class DataLayer {
     }
 }
 exports.DataLayer = DataLayer;
+//# sourceMappingURL=DataLayer.js.map

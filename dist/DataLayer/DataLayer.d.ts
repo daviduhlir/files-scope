@@ -41,7 +41,7 @@ export declare class DataLayer {
             [path: string]: string | Buffer;
         };
     };
-    commit(ignoreErrors?: boolean): Promise<string[]>;
+    commit(ignoreErrors?: boolean, binaryMode?: boolean): Promise<string[]>;
     protected solveDirectFsAction(method: string, args: any[], unsafe?: boolean): any;
     protected solveFsAction(method: string, args: any[], unsafe?: boolean): Promise<any>;
     protected changedPath(fsPath: string): void;

@@ -15,6 +15,7 @@ export interface ScopeOptions {
     readonly?: boolean;
     handlerWrapper?: <T>(actionCaller: () => Promise<T>) => Promise<T>;
     ignoreCommitErrors?: boolean;
+    binaryMode?: boolean;
 }
 export declare const DEFAULT_SCOPE_OPTIONS: ScopeOptions;
 export declare class Scope {

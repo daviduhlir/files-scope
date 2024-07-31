@@ -18,15 +18,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.copyFs = exports.matchPathFilter = void 0;
 const fs_1 = require("fs");
@@ -49,7 +40,7 @@ exports.matchPathFilter = (fsPath, matchers) => {
     }
     return false;
 };
-exports.copyFs = (sourcePath, destinationPath, sourceFs, destinationFs, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+exports.copyFs = async (sourcePath, destinationPath, sourceFs, destinationFs, options = {}) => {
     var _a, _b;
     if (((_a = options.exclude) === null || _a === void 0 ? void 0 : _a.length) && exports.matchPathFilter(sourcePath, options.exclude)) {
         return;
@@ -57,17 +48,17 @@ exports.copyFs = (sourcePath, destinationPath, sourceFs, destinationFs, options 
     if (((_b = options.include) === null || _b === void 0 ? void 0 : _b.length) && !exports.matchPathFilter(sourcePath, options.include)) {
         return;
     }
-    const sourceStat = yield sourceFs.promises.stat(sourcePath);
+    const sourceStat = await sourceFs.promises.stat(sourcePath);
     if (sourceStat.isDirectory()) {
-        const dirents = yield sourceFs.promises.readdir(sourcePath);
+        const dirents = await sourceFs.promises.readdir(sourcePath);
         for (const dirent of dirents) {
-            yield exports.copyFs(path.resolve(sourcePath, dirent), path.resolve(destinationPath, dirent), sourceFs, destinationFs, options);
+            await exports.copyFs(path.resolve(sourcePath, dirent), path.resolve(destinationPath, dirent), sourceFs, destinationFs, options);
         }
     }
     else {
         if (options.skipExisting) {
             try {
-                yield destinationFs.promises.access(destinationPath, fs_1.constants.F_OK);
+                await destinationFs.promises.access(destinationPath, fs_1.constants.F_OK);
                 return;
             }
             catch (e) { }
@@ -75,15 +66,16 @@ exports.copyFs = (sourcePath, destinationPath, sourceFs, destinationFs, options 
         const destinationDirname = path.dirname(destinationPath);
         let destinationStat;
         try {
-            destinationStat = yield destinationFs.promises.stat(destinationDirname);
+            destinationStat = await destinationFs.promises.stat(destinationDirname);
             if (destinationStat.isFile()) {
-                yield destinationFs.promises.rm(destinationDirname, { recursive: true });
-                yield destinationFs.promises.mkdir(destinationDirname, { recursive: true });
+                await destinationFs.promises.rm(destinationDirname, { recursive: true });
+                await destinationFs.promises.mkdir(destinationDirname, { recursive: true });
             }
         }
         catch (e) {
-            yield destinationFs.promises.mkdir(destinationDirname, { recursive: true });
+            await destinationFs.promises.mkdir(destinationDirname, { recursive: true });
         }
-        yield destinationFs.promises.writeFile(destinationPath, yield sourceFs.promises.readFile(sourcePath));
+        await destinationFs.promises.writeFile(destinationPath, await sourceFs.promises.readFile(sourcePath));
     }
-});
+};
+//# sourceMappingURL=index.js.map
