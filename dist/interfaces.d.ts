@@ -22,6 +22,7 @@ export interface DataLayerCallbackApi {
     appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions, callback: NoParamCallback): any;
     copyFile(src: string, dest: string, callback: NoParamCallback): any;
     copyFile(src: string, dest: string, flags: number, callback: NoParamCallback): any;
+    utimes(path: string, atime: string | number | Date, mtime: string | number | Date, callback: NoParamCallback): void;
     lstat(path: string, callback: (err: NodeJS.ErrnoException | null, stats: Stats) => void): void;
     lstat(path: string, options: StatOptions & {
         bigint: true;
@@ -85,6 +86,7 @@ export interface DataLayerPromiseSingleFileApi {
     } & Abortable) | undefined | null): Promise<string | Buffer>;
     readFile(options: 'utf-8'): Promise<string>;
     rename(newPath: string): Promise<void>;
+    utimes(atime: string | number | Date, mtime: string | number | Date): Promise<void>;
     stat(): Promise<Stats>;
     stat(options: (StatOptions & {
         bigint?: false | undefined;
@@ -104,6 +106,7 @@ export interface DataLayerPromiseApi {
     appendFile(path: string, data: string | Uint8Array, options: WriteFileOptions): Promise<void>;
     copyFile(src: string, dest: string): Promise<void>;
     copyFile(src: string, dest: string, flags: number): Promise<void>;
+    utimes(path: string, atime: string | number | Date, mtime: string | number | Date): Promise<void>;
     lstat(path: string): Promise<Stats>;
     lstat(path: string, options: StatOptions & {
         bigint: true;

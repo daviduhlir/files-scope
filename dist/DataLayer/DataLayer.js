@@ -283,6 +283,7 @@ class DataLayer {
                         catch (e) { }
                     }
                     return false;
+                case 'utimes':
                 case 'readFile':
                 case 'lstat':
                 case 'stat':
