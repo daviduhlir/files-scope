@@ -162,7 +162,7 @@ describe('Basic scope tests', function() {
     }, async (fs, dependecies) => {
       const content = await fs.promises.readFile('/assets/archive')
       sizeBefore = content.byteLength
-      await fs.promises.writeFile('/temp/archive.tgz', content)
+      await fs.promises.writeFile('/temp/archive', content)
     })
 
     const stat = await systemFs.stat('./tests/temp/archive')
