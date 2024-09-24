@@ -113,7 +113,7 @@ class DataLayer {
                 try {
                     const stat = (yield util_1.promisify(this.sourceFs.stat)(unlinkedPath));
                     if (stat.isDirectory()) {
-                        yield util_1.promisify(this.sourceFs.rm)(unlinkedPath, { recursive: true });
+                        yield util_1.promisify((this.sourceFs.rm || this.sourceFs.rmdir))(unlinkedPath, { recursive: true });
                     }
                     else {
                         yield util_1.promisify(this.sourceFs.unlink)(unlinkedPath);
