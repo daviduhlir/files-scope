@@ -171,7 +171,8 @@ describe('Basic scope tests', function() {
 
   it('Remove folder', async function() {
     let exists = false
-    await systemFs.cp('./tests/assets', './tests/temp/dirToRm', { recursive: true })
+    await systemFs.mkdir('./tests/temp/dirToRm')
+    await systemFs.copyFile('./tests/assets/lorem.txt', './tests/temp/dirToRm/lorem.txt')
 
     exists = false
     try {
