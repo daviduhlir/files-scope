@@ -168,4 +168,33 @@ describe('Basic scope tests', function() {
     const stat = await systemFs.stat('./tests/temp/archive')
     assert(sizeBefore === stat.size, 'Size have to be same')
   })
+
+  it('Remove folder', async function() {
+    let exists = false
+    await systemFs.mkdir('./tests/temp/dirToRm')
+    await systemFs.copyFile('./tests/assets/lorem.txt', './tests/temp/dirToRm/lorem.txt')
+
+    exists = false
+    try {
+      const stat = await systemFs.stat('./tests/temp/dirToRm')
+      exists = stat.isDirectory()
+    } catch(e) {}
+    if (!exists) {
+      throw new Error('Can not create folder for remove folder tests')
+    }
+
+    await FileScope.prepare('./tests/temp').open({
+      dirToRm: Dependency.writeFolderAccess('/dirToRm'),
+    }, async (fs, dependecies) => {
+      await dependecies.dirToRm.fs.rm('/', { recursive: true })
+    })
+
+    exists = false
+    try {
+      const stat = await systemFs.stat('./tests/temp/dirToRm')
+      exists = stat.isDirectory()
+    } catch(e) {}
+
+    assert(exists === false, 'Folder should not exists')
+  })
 })

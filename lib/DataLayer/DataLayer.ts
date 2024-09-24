@@ -139,7 +139,7 @@ export class DataLayer {
       try {
         const stat = (await promisify(this.sourceFs.stat)(unlinkedPath)) as Stats
         if (stat.isDirectory()) {
-          await promisify(this.sourceFs.rm as any)(unlinkedPath, { recursive: true })
+          await promisify((this.sourceFs.rm || this.sourceFs.rmdir) as any)(unlinkedPath, { recursive: true })
         } else {
           await promisify(this.sourceFs.unlink)(unlinkedPath)
         }
