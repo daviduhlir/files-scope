@@ -114,3 +114,5 @@ cache/*
 
 #temp
 temp
+
+dist/*
