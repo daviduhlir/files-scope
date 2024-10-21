@@ -144,7 +144,7 @@ export class Scope {
           return result
         },
         this.options.maxLockingTime,
-        getStackFrom('open'),
+        getStackFrom(),
       ),
     )
 

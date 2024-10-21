@@ -20,7 +20,7 @@
   "author": "David Uhlíř",
   "license": "ISC",
   "dependencies": {
-    "@david.uhlir/mutex": "~1.2.0",
+    "@david.uhlir/mutex": "~1.2.1",
     "linkfs": "^2.1.0",
     "memfs": "^4.9.2"
   },
