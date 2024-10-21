@@ -3,7 +3,7 @@ import { DataLayer, DataLayerFsApi } from '../DataLayer/DataLayer'
 import { Dependency, dependencyFsInjector } from './Dependency'
 import AsyncLocalStorage from '../helpers/AsyncLocalStorage'
 import { concatMutexKey, isSubpath } from '../helpers'
-import { getStackFrom } from '../utils/stack'
+import { getStack } from '../utils/stack'
 
 /**
  * Files scope, with mutexes implemented
@@ -144,7 +144,7 @@ export class Scope {
           return result
         },
         this.options.maxLockingTime,
-        getStackFrom(),
+        getStack(),
       ),
     )
 
