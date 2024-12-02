@@ -111,6 +111,8 @@ export class Scope {
         singleAccess: key.writeAccess,
       }))
       .filter(lock => !allParentalMutexes.find(item => isSubpath(lock.key, item.key)))
+      .sort((a,b) => a.key.length - b.key.length)
+      .sort((a,b) => a.singleAccess && !b.singleAccess ? -1 : !b.singleAccess && a.singleAccess ? +1 : 0)
 
     let changedPaths = []
     const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
