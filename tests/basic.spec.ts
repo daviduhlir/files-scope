@@ -3,8 +3,6 @@ import { FileScope, Dependency } from '../dist'
 import { delay } from './utils'
 import { promises as systemFs } from 'fs'
 
-FileScope.dumpStats = true
-
 /**
  * Simple scopes locks test
  */
