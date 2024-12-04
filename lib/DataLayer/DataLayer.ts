@@ -81,9 +81,9 @@ export class DataLayer {
       get: (target, propKey, receiver) => {
         const stringPropKey = propKey.toString()
         if (stringPropKey === 'promises') {
-          return this.promises
+          return this.getPromisesFs(unsafe)
         } else if (stringPropKey === 'unsafeFullFs') {
-          return this.fs
+          return this.getFsProxy(true)
         } else if (stringPropKey === 'addExternal') {
           return (path: string, fs) => this.addExternal(path, fs)
         } else if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
@@ -105,15 +105,19 @@ export class DataLayer {
   /**
    * Get promises fs api
    */
-  get promises(): FsPromisesApi {
+  getPromisesFs(unsafe?: boolean): FsPromisesApi {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         if (propKey === 'unsafeFullFs') {
           return this.promises
         }
-        return (...args) => this.solveFsAction(propKey.toString(), args)
+        return (...args) => this.solveFsAction(propKey.toString(), args, unsafe)
       },
     })
+  }
+
+  get promises(): FsPromisesApi {
+    return this.getPromisesFs()
   }
 
   /**
@@ -380,6 +384,9 @@ export class DataLayer {
         this.unlinkedPaths.push(args[0])
         return this.volumeFs.promises.rename.apply(this, args)
       case 'copyFile':
+        if (!unsafe) {
+          this.checkWriteAllowed(args[1])
+        }
         await this.prepareInFs(args[0])
         return this.volumeFs.promises.copyFile.apply(this, args)
       case 'unlink':
