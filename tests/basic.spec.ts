@@ -202,4 +202,19 @@ describe('Basic scope tests', function() {
 
     assert(exists === false, 'Folder should not exists')
   })
+
+  it('Nested write with access', async function() {
+    const scope = FileScope.prepare('./temp')
+    await scope.open({
+      a: Dependency.writeFileAccess('/dir-nested-A'),
+    }, async (fs, dependecies) => {
+
+      await scope.open({
+        a: Dependency.writeFileAccess('/dir-nested'),
+      }, async (fs, dependecies) => {
+        await dependecies.a.fs.writeFile('Hello')
+      })
+
+    })
+  })
 })
