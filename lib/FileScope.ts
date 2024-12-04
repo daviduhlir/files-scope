@@ -5,6 +5,7 @@ import { Scope, ScopeOptions } from './Scope/Scope'
 import { link } from 'linkfs'
 
 export class FileScope extends Scope {
+  static dumpStats: boolean
   /**
    * Initialize data layer
    */
@@ -12,6 +13,7 @@ export class FileScope extends Scope {
     return new DataLayer(
       { ...link(fs, ['/', this.workingDir]), promises: link(fs.promises, ['/', this.workingDir]) },
       dependecies.filter(key => key.writeAccess).map(key => key.path),
+      FileScope.dumpStats ? this.workingDir : undefined,
     )
   }
 

@@ -178,6 +178,7 @@ export class Scope {
       await this.options.afterRootScopeDone(changedPaths)
     }
 
+    dataLayer.clear()
     return result
   }
 

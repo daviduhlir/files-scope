@@ -42,7 +42,7 @@ export class DataLayer {
 
   protected externals: ExternalFsLink[] = []
 
-  constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[]) {
+  constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[], readonly root?: string) {
     this.volumeFs = createFsFromVolume(this.volume)
   }
 
@@ -54,14 +54,23 @@ export class DataLayer {
   }
 
   /**
-   * Reset all changes
+   * Clear memfs
    */
-  reset() {
+  clear() {
     if (this.volume) {
       this.volume.reset()
     }
-    this.volume = new Volume()
-    this.volumeFs = createFsFromVolume(this.volume)
+    this.volume = null
+    this.volumeFs = null
+    this.unlinkedPaths = []
+    this.changedPaths = []
+  }
+
+  /**
+   * Reset all changes
+   */
+  reset() {
+    this.clear()
     this.unlinkedPaths = []
     this.changedPaths = []
   }
@@ -156,6 +165,7 @@ export class DataLayer {
       }
     }
 
+    const stats = {}
     for (const nodePath in dumped.nodes) {
       const node = dumped.nodes[nodePath]
       if (node === null) {
@@ -173,9 +183,13 @@ export class DataLayer {
         if (isDirectory) {
           if (binaryMode) {
             const content = await this.volumeFs.promises.readFile(nodePath)
+            const time = Date.now()
             await this.sourceFs.promises.writeFile(nodePath, content)
+            stats[nodePath] = `${Date.now() - time}ms (bin)`
           } else {
+            const time = Date.now()
             await this.sourceFs.promises.writeFile(nodePath, node)
+            stats[nodePath] = `${Date.now() - time}ms`
           }
         } else {
           if (!ignoreErrors) {
@@ -183,6 +197,9 @@ export class DataLayer {
           }
         }
       }
+    }
+    if (this.root && Object.keys(stats).length) {
+      console.log(`Write to ${this.root} done`, stats)
     }
     for (const tempFile of this.tempFiles) {
       try {
