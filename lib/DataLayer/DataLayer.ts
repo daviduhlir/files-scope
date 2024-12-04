@@ -1,5 +1,4 @@
 import { IFs, Volume, createFsFromVolume } from 'memfs'
-import { promisify } from 'util'
 import * as path from 'path'
 import { FsCallbackApi, FsPromisesApi } from 'memfs/lib/node/types'
 import Stats from 'memfs/lib/Stats'
@@ -58,6 +57,9 @@ export class DataLayer {
    * Reset all changes
    */
   reset() {
+    if (this.volume) {
+      this.volume.reset()
+    }
     this.volume = new Volume()
     this.volumeFs = createFsFromVolume(this.volume)
     this.unlinkedPaths = []
@@ -137,11 +139,11 @@ export class DataLayer {
 
     for (const unlinkedPath of dumped.unlinkedPaths) {
       try {
-        const stat = (await promisify(this.sourceFs.stat)(unlinkedPath)) as Stats
+        const stat = (await this.sourceFs.promises.stat(unlinkedPath)) as Stats
         if (stat.isDirectory()) {
-          await promisify((this.sourceFs.rm || this.sourceFs.rmdir) as any)(unlinkedPath, { recursive: true })
+          await (this.sourceFs.promises.rm || this.sourceFs.promises.rmdir)(unlinkedPath, { recursive: true })
         } else {
-          await promisify(this.sourceFs.unlink)(unlinkedPath)
+          await this.sourceFs.promises.unlink(unlinkedPath)
         }
       } catch (e) {
         if (!ignoreErrors) {
@@ -153,23 +155,23 @@ export class DataLayer {
     for (const nodePath in dumped.nodes) {
       const node = dumped.nodes[nodePath]
       if (node === null) {
-        await promisify(this.sourceFs.mkdir as any)(nodePath, { recursive: true })
+        await this.sourceFs.promises.mkdir(nodePath, { recursive: true })
       } else if (typeof node === 'string' || node instanceof Buffer) {
         const destPath = path.dirname(nodePath)
 
         let isDirectory = false
         try {
-          isDirectory = ((await promisify(this.sourceFs.stat)(destPath)) as Stats).isDirectory()
+          isDirectory = ((await this.sourceFs.promises.stat(destPath)) as Stats).isDirectory()
         } catch (e) {
-          await promisify(this.sourceFs.mkdir as any)(destPath, { recursive: true })
+          await this.sourceFs.promises.mkdir(destPath, { recursive: true })
           isDirectory = true
         }
         if (isDirectory) {
           if (binaryMode) {
             const content = await this.volumeFs.promises.readFile(nodePath)
-            await promisify(this.sourceFs.writeFile as any)(nodePath, content)
+            await this.sourceFs.promises.writeFile(nodePath, content)
           } else {
-            await promisify(this.sourceFs.writeFile as any)(nodePath, node)
+            await this.sourceFs.promises.writeFile(nodePath, node)
           }
         } else {
           if (!ignoreErrors) {
@@ -281,7 +283,7 @@ export class DataLayer {
             if (this.checkIsUnlinked(args[0] as string)) {
               throw new Error(`No such file on path ${args[0]}`)
             }
-            await promisify(this.sourceFs.access as any)(args[0], F_OK)
+            await this.sourceFs.promises.access(args[0], F_OK)
             return true
           } catch (e) {}
         }
@@ -302,7 +304,7 @@ export class DataLayer {
             if (this.checkIsUnlinked(args[0] as string)) {
               throw new Error(`No such directory on path ${args[0]}`)
             }
-            if (((await promisify(this.sourceFs.stat)(args[0])) as any).isDirectory()) {
+            if (((await this.sourceFs.promises.stat(args[0])) as any).isDirectory()) {
               return true
             }
           } catch (e) {}
@@ -325,7 +327,7 @@ export class DataLayer {
           if (this.checkIsUnlinked(args[0] as string)) {
             throw new Error(`No such file on path ${args[0]}`)
           }
-          return promisify(this.sourceFs[method]).apply(this, args)
+          return this.sourceFs.promises[method].apply(this, args)
         }
       case 'readdir': {
         external = this.getExternalPath(args[0])
@@ -340,7 +342,7 @@ export class DataLayer {
         let fsResult = []
         try {
           const wasUnlinkedInFs = this.checkIsUnlinked(args[0])
-          fsResult = wasUnlinkedInFs ? [] : await promisify(this.sourceFs.readdir).apply(this, args)
+          fsResult = wasUnlinkedInFs ? [] : await this.sourceFs.promises.readdir.apply(this, args)
         } catch (e) {}
 
         const result = new Map<string, any>()
@@ -391,7 +393,7 @@ export class DataLayer {
           return await this.volumeFs.promises[method].apply(this, args)
         } catch (e) {
           try {
-            await promisify(this.sourceFs.stat)(args[0])
+            await this.sourceFs.promises.stat(args[0])
           } catch (statError) {
             throw e
           }
@@ -469,7 +471,7 @@ export class DataLayer {
         return
       }
       try {
-        const content = (await promisify(this.sourceFs.readFile)(fsPath)) as Buffer
+        const content = (await this.sourceFs.promises.readFile(fsPath)) as Buffer
         await this.volumeFs.promises.mkdir(path.dirname(destinationPath), { recursive: true })
         await this.volumeFs.promises.writeFile(destinationPath, content)
       } catch (e) {
