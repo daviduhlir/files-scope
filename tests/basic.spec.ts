@@ -171,8 +171,13 @@ describe('Basic scope tests', function() {
 
   it('Remove folder', async function() {
     let exists = false
-    await systemFs.mkdir('./tests/temp/dirToRm')
-    await systemFs.copyFile('./tests/assets/lorem.txt', './tests/temp/dirToRm/lorem.txt')
+    try {
+      await systemFs.mkdir('./tests/temp/dirToRm')
+    } catch(e) {}
+
+    try {
+      await systemFs.copyFile('./tests/assets/lorem.txt', './tests/temp/dirToRm/lorem.txt')
+    } catch(e) {}
 
     exists = false
     try {

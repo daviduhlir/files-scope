@@ -10,7 +10,7 @@ export class FileScope extends Scope {
    */
   protected createDatalayer(dependecies: Dependency[]): DataLayer {
     return new DataLayer(
-      link(fs, ['/', this.workingDir]),
+      { ...link(fs, ['/', this.workingDir]), promises: link(fs.promises, ['/', this.workingDir]) },
       dependecies.filter(key => key.writeAccess).map(key => key.path),
     )
   }
