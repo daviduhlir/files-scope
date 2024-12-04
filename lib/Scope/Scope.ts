@@ -103,16 +103,36 @@ export class Scope {
     dependeciesList.forEach(dependency => dependency.initialize())
 
     // lock access to group
-    const mutexKeys = dependeciesList
+    const mutexKeysRequested = dependeciesList
       .filter(key => key.needsLock())
       .map(key => ({
         // TODO make better key creation
         key: concatMutexKey(this.options.mutexPrefix, this.workingDir, key.path),
         singleAccess: key.writeAccess,
       }))
-      .filter(lock => !allParentalMutexes.find(item => isSubpath(lock.key, item.key)))
-      .sort((a,b) => a.key.length - b.key.length)
-      .sort((a,b) => a.singleAccess && !b.singleAccess ? -1 : !b.singleAccess && a.singleAccess ? +1 : 0)
+      .sort((a, b) => a.key.length - b.key.length)
+      .sort((a, b) => (a.singleAccess && !b.singleAccess ? -1 : !b.singleAccess && a.singleAccess ? +1 : 0))
+
+    // optimize keys
+    const mutexKeys = []
+    for (const lock of mutexKeysRequested) {
+      const parentalSubkeys = allParentalMutexes.filter(item => isSubpath(lock.key, item.key))
+
+      if (lock.singleAccess && parentalSubkeys.some(l => l.singleAccess)) {
+        continue
+      }
+      if (!lock.singleAccess && parentalSubkeys.length) {
+        continue
+      }
+      const alreadyAdded = mutexKeys.filter(item => isSubpath(lock.key, item.key))
+      if (lock.singleAccess && alreadyAdded.some(l => l.singleAccess)) {
+        continue
+      }
+      if (!lock.singleAccess && alreadyAdded.length) {
+        continue
+      }
+      mutexKeys.push(lock)
+    }
 
     let changedPaths = []
     const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
