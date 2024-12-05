@@ -34,7 +34,7 @@ export interface ExternalFsLink {
  * Provides also commit data to sourceFs
  */
 export class DataLayer {
-  protected volume = new Volume()
+  protected volume = null
   protected volumeFs: IFs
   protected unlinkedPaths: string[] = []
   protected changedPaths: string[] = []
@@ -42,9 +42,7 @@ export class DataLayer {
 
   protected externals: ExternalFsLink[] = []
 
-  constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[], readonly root?: string) {
-    this.volumeFs = createFsFromVolume(this.volume)
-  }
+  constructor(readonly sourceFs: IFs | DataLayerFsApi, readonly writeAllowedPaths?: string[], readonly root?: string) {}
 
   /**
    * Add read callback alias for subpath
@@ -86,6 +84,7 @@ export class DataLayer {
    * Get fs api without write checks
    */
   getFsProxy(unsafe?: boolean): DataLayerFsApi {
+    this.lazyInit()
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         const stringPropKey = propKey.toString()
@@ -115,6 +114,7 @@ export class DataLayer {
    * Get promises fs api
    */
   getPromisesFs(unsafe?: boolean): FsPromisesApi {
+    this.lazyInit()
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {
         if (propKey === 'unsafeFullFs') {
@@ -212,6 +212,15 @@ export class DataLayer {
 
     this.reset()
     return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths)
+  }
+
+  protected lazyInit() {
+    if (!this.volume) {
+      this.volume = new Volume()
+    }
+    if (!this.volumeFs) {
+      this.volumeFs = createFsFromVolume(this.volume)
+    }
   }
 
   /**

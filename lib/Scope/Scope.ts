@@ -38,12 +38,12 @@ export class Scope {
   /**
    * storage of data for nested keys
    */
-  protected stackStorage = new AsyncLocalStorage<
-    {
+  protected static stackStorage = new AsyncLocalStorage<{
+    [workingDir: string]: {
       layer: DataLayer
       mutexKeys: MutexKeyItem[]
     }[]
-  >()
+  }>()
 
   protected options: ScopeOptions = DEFAULT_SCOPE_OPTIONS
 
@@ -85,7 +85,8 @@ export class Scope {
     }
 
     // call before open to preapre fs, etc...
-    const stack = [...(this.stackStorage.getStore() || [])]
+    const stackStorage = Scope.stackStorage.getStore() || {}
+    const stack = [...(stackStorage[this.workingDir] || [])]
     const parent = stack?.length ? stack[stack.length - 1].layer : undefined
 
     const allParentalMutexes = stack.map(item => item.mutexKeys).flat()
@@ -135,39 +136,41 @@ export class Scope {
     }
 
     let changedPaths = []
-    const result = await this.stackStorage.run([...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }], async () =>
-      Scope.lockScope(
-        mutexKeys,
-        dependeciesMap,
-        async () => {
-          if (!parent && this.options.beforeRootScopeOpen) {
-            await this.options.beforeRootScopeOpen()
-          }
-
-          if (this.options.beforeScopeOpen) {
-            await this.options.beforeScopeOpen()
-          }
-
-          // do the stuff in scope
-          let result
-          try {
-            if (this.options.handlerWrapper) {
-              result = await this.options.handlerWrapper(() => handler(dataLayer.fs, dependeciesMap))
-            } else {
-              result = await handler(dataLayer.fs, dependeciesMap)
+    const result = await Scope.stackStorage.run(
+      { ...stackStorage, [this.workingDir]: [...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }] },
+      async () =>
+        Scope.lockScope(
+          mutexKeys,
+          dependeciesMap,
+          async () => {
+            if (!parent && this.options.beforeRootScopeOpen) {
+              await this.options.beforeRootScopeOpen()
             }
-          } catch (e) {
-            if (this.options.commitIfFail) {
-              changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
+
+            if (this.options.beforeScopeOpen) {
+              await this.options.beforeScopeOpen()
             }
-            throw e
-          }
-          changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
-          return result
-        },
-        this.options.maxLockingTime,
-        getStack(),
-      ),
+
+            // do the stuff in scope
+            let result
+            try {
+              if (this.options.handlerWrapper) {
+                result = await this.options.handlerWrapper(() => handler(dataLayer.fs, dependeciesMap))
+              } else {
+                result = await handler(dataLayer.fs, dependeciesMap)
+              }
+            } catch (e) {
+              if (this.options.commitIfFail) {
+                changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
+              }
+              throw e
+            }
+            changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
+            return result
+          },
+          this.options.maxLockingTime,
+          getStack(),
+        ),
     )
 
     if (this.options.afterScopeDone) {
