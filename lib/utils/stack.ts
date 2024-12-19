@@ -1,7 +1,7 @@
-import { SharedMutexSynchronizer } from '@david.uhlir/mutex'
+import { SharedMutex } from '@david.uhlir/mutex'
 
 export function getStack() {
-  if (!SharedMutexSynchronizer.debugWithStack) {
+  if (!SharedMutex.synchronizer.options.debugWithStack) {
     return null
   }
 

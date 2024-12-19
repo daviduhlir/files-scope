@@ -112,10 +112,13 @@ export class Scope {
         singleAccess: key.writeAccess,
       }))
       .sort((a, b) => a.key.length - b.key.length)
-      .sort((a, b) => (a.singleAccess && !b.singleAccess ? -1 : !b.singleAccess && a.singleAccess ? +1 : 0))
+    //.sort((a, b) => (a.singleAccess && !b.singleAccess ? -1 : !b.singleAccess && a.singleAccess ? +1 : 0))
+
+    const mutexKeysSingleAccess = mutexKeysRequested.filter(l => l.singleAccess)
+    const mutexKeysMultiAccess = mutexKeysRequested.filter(l => !l.singleAccess)
 
     // optimize keys
-    const mutexKeys = []
+    /*const mutexKeys = []
     for (const lock of mutexKeysRequested) {
       const parentalSubkeys = allParentalMutexes.filter(item => isSubpath(lock.key, item.key))
 
@@ -135,13 +138,15 @@ export class Scope {
       mutexKeys.push(lock)
     }
 
+    console.log(mutexKeys)*/
+
     let changedPaths = []
     const result = await Scope.stackStorage.run(
-      { ...stackStorage, [this.workingDir]: [...stack, { layer: dataLayer, mutexKeys: [...mutexKeys] }] },
+      { ...stackStorage, [this.workingDir]: [...stack, { layer: dataLayer, mutexKeys: [...mutexKeysRequested] }] },
       async () =>
         Scope.lockScope(
-          mutexKeys,
-          dependeciesMap,
+          mutexKeysSingleAccess,
+          mutexKeysMultiAccess,
           async () => {
             if (!parent && this.options.beforeRootScopeOpen) {
               await this.options.beforeRootScopeOpen()
@@ -193,28 +198,35 @@ export class Scope {
    * @param maxLockingTime
    * @returns
    */
-  protected static lockScope<T, K extends { [key: string]: Dependency }>(
-    mutexes: MutexKeyItem[],
-    dependeciesMap: K,
+  protected static lockScope<T>(
+    mutexesSingleAccess: MutexKeyItem[],
+    mutexesMultiAccess: MutexKeyItem[],
     handler: () => Promise<T>,
     maxLockingTime?: number,
     stack?: string,
   ) {
-    const m = mutexes.pop()
-    if (!m) {
+    const multiAccessLock = () => {
+      if (mutexesMultiAccess.length) {
+        return SharedMutex.lockAccess(
+          mutexesMultiAccess.map(l => l.key),
+          () => handler(),
+          false,
+          maxLockingTime,
+          stack,
+        )
+      }
       return handler()
     }
-    return SharedMutex.lockAccess(
-      m.key,
-      async () => {
-        if (mutexes.length) {
-          return this.lockScope(mutexes, dependeciesMap, handler, maxLockingTime, stack)
-        }
-        return handler()
-      },
-      m.singleAccess,
-      maxLockingTime,
-      stack,
-    )
+
+    if (mutexesSingleAccess.length) {
+      return SharedMutex.lockAccess(
+        mutexesSingleAccess.map(l => l.key),
+        () => multiAccessLock(),
+        true,
+        maxLockingTime,
+        stack,
+      )
+    }
+    return multiAccessLock()
   }
 }

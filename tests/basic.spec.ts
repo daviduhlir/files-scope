@@ -8,6 +8,17 @@ import { promises as systemFs } from 'fs'
  */
 describe('Basic scope tests', function() {
   it('Single access', async function() {
+
+      await FileScope.prepare('./temp').open({
+        a: Dependency.readFileAccess('/dir/dirB/file1.txt'),
+        b: Dependency.writeFileAccess('/dir/dirB/abc.txt'),
+        c: Dependency.readFileAccess('/dir/dirB/file3.txt'),
+      }, async (fs, dependecies) => {
+
+      })
+  })
+
+  it('Single access', async function() {
     let failed = false
     let open = false
     await Promise.all([
@@ -57,7 +68,7 @@ describe('Basic scope tests', function() {
       }),
     ])
 
-    assert(accumulator === 'B:IN;A:IN;B:OUT;A:OUT;', 'Multi access scope can be accessed together')
+    assert(accumulator === 'A:IN;B:IN;A:OUT;B:OUT;', 'Multi access scope can be accessed together')
   })
 
   it('Throw error unlock scope', async function() {
