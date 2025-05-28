@@ -69,6 +69,18 @@ export class Scope {
   }
 
   /**
+   * Gets clone of scope
+   * @param readonly
+   * @returns
+   */
+  public clone(options?: Partial<ScopeOptions>): Scope {
+    return new Scope(this.workingDir, {
+      ...this.options,
+      ...options,
+    })
+  }
+
+  /**
    * Open scope with dependecies
    */
   async open<T, K extends { [key: string]: Dependency }>(dependeciesMap: K, handler: (fs: DataLayerFsApi, dependecies: K) => Promise<T>): Promise<T> {

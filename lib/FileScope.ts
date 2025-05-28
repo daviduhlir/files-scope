@@ -6,6 +6,19 @@ import { link } from 'linkfs'
 
 export class FileScope extends Scope {
   static dumpStats: boolean
+
+  /**
+   * Gets clone of scope
+   * @param readonly
+   * @returns
+   */
+  public clone(options?: Partial<ScopeOptions>): FileScope {
+    return new FileScope(this.workingDir, {
+      ...this.options,
+      ...options,
+    })
+  }
+
   /**
    * Initialize data layer
    */
