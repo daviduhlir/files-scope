@@ -77,9 +77,6 @@ export class DependencyFile extends Dependency {
 }
 
 export class DependencyFolder extends Dependency {
-  relativizePath(requestedPath: any): string {
-    throw new Error('Method not implemented.')
-  }
   get fs(): DataLayerPromiseApi {
     return new Proxy(this as any, {
       get: (target, propKey, receiver) => {

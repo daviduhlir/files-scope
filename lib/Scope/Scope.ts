@@ -14,6 +14,7 @@ export interface ScopeOptions {
   mutexPrefix: string // prefix of mutexes
   maxLockingTime?: number // mutex max locking time
   commitIfFail?: boolean // commit result in case handler throws error
+  dryRun?: boolean // dry run mode, do not commit changes
   beforeRootScopeOpen?: () => Promise<void>
   afterRootScopeDone?: (changedPaths: string[]) => Promise<void>
   beforeScopeOpen?: () => Promise<void>
@@ -60,18 +61,11 @@ export class Scope {
   }
 
   /**
-   * Scope prepare factory
+   * Get working directory
+   * @returns
    */
-  static prepare(workingDir: string, options?: Partial<ScopeOptions>) {
-    return new Scope(workingDir, options)
-  }
-
-  /**
-   * Initialize scope
-   */
-  protected createDatalayer(dependecies: Dependency[]): DataLayer {
-    // use this to preapre fs
-    return null
+  public getWorkingDir(): string {
+    return this.workingDir
   }
 
   /**
@@ -160,12 +154,14 @@ export class Scope {
                 result = await handler(dataLayer.fs, dependeciesMap)
               }
             } catch (e) {
-              if (this.options.commitIfFail) {
+              if (this.options.commitIfFail && !this.options.dryRun) {
                 changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
               }
               throw e
             }
-            changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
+            if (!this.options.dryRun) {
+              changedPaths = await dataLayer.commit(this.options.ignoreCommitErrors, this.options.binaryMode)
+            }
             return result
           },
           this.options.maxLockingTime,
@@ -183,6 +179,21 @@ export class Scope {
 
     dataLayer.clear()
     return result
+  }
+
+  /**
+   * Scope prepare factory
+   */
+  static prepare(workingDir: string, options?: Partial<ScopeOptions>) {
+    return new Scope(workingDir, options)
+  }
+
+  /**
+   * Initialize scope
+   */
+  protected createDatalayer(dependecies: Dependency[]): DataLayer {
+    // use this to preapre fs
+    return null
   }
 
   /**

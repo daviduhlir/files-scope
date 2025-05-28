@@ -80,68 +80,8 @@ export class DataLayer {
     return this.getFsProxy()
   }
 
-  /**
-   * Get fs api without write checks
-   */
-  getFsProxy(unsafe?: boolean): DataLayerFsApi {
-    this.lazyInit()
-    return new Proxy(this as any, {
-      get: (target, propKey, receiver) => {
-        const stringPropKey = propKey.toString()
-        if (stringPropKey === 'promises') {
-          return this.getPromisesFs(unsafe)
-        } else if (stringPropKey === 'unsafeFullFs') {
-          return this.getFsProxy(true)
-        } else if (stringPropKey === 'addExternal') {
-          return (path: string, fs) => this.addExternal(path, fs)
-        } else if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
-          return (...args) => this.solveDirectFsAction(stringPropKey, args, unsafe)
-        } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
-          return (...args) => {
-            const cb = args.pop()
-            this.solveFsAction(stringPropKey, args, unsafe).then(
-              result => cb(null, result),
-              error => cb(error, null),
-            )
-          }
-        }
-        return undefined
-      },
-    })
-  }
-
-  /**
-   * Get promises fs api
-   */
-  getPromisesFs(unsafe?: boolean): FsPromisesApi {
-    this.lazyInit()
-    return new Proxy(this as any, {
-      get: (target, propKey, receiver) => {
-        if (propKey === 'unsafeFullFs') {
-          return this.promises
-        }
-        return (...args) => this.solveFsAction(propKey.toString(), args, unsafe)
-      },
-    })
-  }
-
   get promises(): FsPromisesApi {
     return this.getPromisesFs()
-  }
-
-  /**
-   * Dump data from fs
-   */
-  dump() {
-    const volumeJson = this.volume.toJSON()
-    const nodes = this.extractAllPaths(volumeJson)
-    const nodesPaths = Object.keys(nodes)
-    const unlinkedPaths = this.unlinkedPaths.filter(unlinkedPath => !nodesPaths.find(nodePath => nodePath.startsWith(unlinkedPath)))
-    return {
-      changedPaths: this.changedPaths,
-      unlinkedPaths,
-      nodes,
-    }
   }
 
   /**
@@ -212,6 +152,66 @@ export class DataLayer {
 
     this.reset()
     return Object.keys(dumped.nodes).concat(dumped.unlinkedPaths)
+  }
+
+  /**
+   * Get fs api without write checks
+   */
+  getFsProxy(unsafe?: boolean): DataLayerFsApi {
+    this.lazyInit()
+    return new Proxy(this as any, {
+      get: (target, propKey, receiver) => {
+        const stringPropKey = propKey.toString()
+        if (stringPropKey === 'promises') {
+          return this.getPromisesFs(unsafe)
+        } else if (stringPropKey === 'unsafeFullFs') {
+          return this.getFsProxy(true)
+        } else if (stringPropKey === 'addExternal') {
+          return (path: string, fs) => this.addExternal(path, fs)
+        } else if (SUPPORTED_DIRECT_METHODS.includes(stringPropKey)) {
+          return (...args) => this.solveDirectFsAction(stringPropKey, args, unsafe)
+        } else if (SUPPORTED_METHODS.includes(stringPropKey)) {
+          return (...args) => {
+            const cb = args.pop()
+            this.solveFsAction(stringPropKey, args, unsafe).then(
+              result => cb(null, result),
+              error => cb(error, null),
+            )
+          }
+        }
+        return undefined
+      },
+    })
+  }
+
+  /**
+   * Get promises fs api
+   */
+  protected getPromisesFs(unsafe?: boolean): FsPromisesApi {
+    this.lazyInit()
+    return new Proxy(this as any, {
+      get: (target, propKey, receiver) => {
+        if (propKey === 'unsafeFullFs') {
+          return this.promises
+        }
+        return (...args) => this.solveFsAction(propKey.toString(), args, unsafe)
+      },
+    })
+  }
+
+  /**
+   * Dump data from fs
+   */
+  protected dump() {
+    const volumeJson = this.volume.toJSON()
+    const nodes = this.extractAllPaths(volumeJson)
+    const nodesPaths = Object.keys(nodes)
+    const unlinkedPaths = this.unlinkedPaths.filter(unlinkedPath => !nodesPaths.find(nodePath => nodePath.startsWith(unlinkedPath)))
+    return {
+      changedPaths: this.changedPaths,
+      unlinkedPaths,
+      nodes,
+    }
   }
 
   protected lazyInit() {
